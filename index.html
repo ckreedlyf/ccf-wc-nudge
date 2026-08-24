@@ -1,820 +1,771 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CCF Welcome Center — Miner Nudge</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-<style>
-:root {
-  --bg: #F7F6F2;
-  --surface: #FFFFFF;
-  --surface2: #F0EFE9;
-  --border: #E2E0D8;
-  --border2: #CBC9BF;
-  --text: #1A1917;
-  --text2: #6B6960;
-  --text3: #9B9A93;
-  --accent: #2B5FD9;
-  --accent-bg: #EEF2FC;
-  --green: #1A7A4A;
-  --green-bg: #E8F5EE;
-  --amber: #A05C00;
-  --amber-bg: #FDF3E3;
-  --red: #C0392B;
-  --red-bg: #FDECEA;
-  --radius: 10px;
-  --radius-sm: 6px;
-}
-
-* { box-sizing: border-box; margin: 0; padding: 0; }
-
-body {
-  font-family: 'DM Sans', sans-serif;
-  background: var(--bg);
-  color: var(--text);
-  min-height: 100vh;
-  font-size: 14px;
-  line-height: 1.6;
-}
-
-.topbar {
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-  padding: 0 24px;
-  height: 56px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  position: sticky;
-  top: 0;
-  z-index: 100;
-}
-
-.logo {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.logo-mark {
-  width: 28px;
-  height: 28px;
-  background: var(--accent);
-  border-radius: 7px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: -0.5px;
-}
-
-.logo-text {
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--text);
-}
-
-.logo-sub {
-  font-size: 11px;
-  color: var(--text3);
-  margin-top: -2px;
-}
-
-.topbar-right {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.signin-badge {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: var(--green);
-  background: var(--green-bg);
-  padding: 4px 10px;
-  border-radius: 20px;
-  font-weight: 500;
-}
-
-.dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--green);
-}
-
-.main { max-width: 720px; margin: 0 auto; padding: 28px 20px 60px; }
-
-.page-title { font-size: 22px; font-weight: 600; letter-spacing: -0.4px; margin-bottom: 4px; }
-.page-sub { color: var(--text2); font-size: 13px; margin-bottom: 24px; }
-
-.card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 20px;
-  margin-bottom: 16px;
-}
-
-.card-title {
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
-  color: var(--text3);
-  margin-bottom: 16px;
-}
-
-.field { margin-bottom: 14px; }
-.field label { display: block; font-size: 12px; font-weight: 500; color: var(--text2); margin-bottom: 5px; }
-.field input {
-  width: 100%;
-  padding: 9px 12px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--bg);
-  color: var(--text);
-  font-family: 'DM Sans', sans-serif;
-  font-size: 13px;
-  transition: border-color 0.15s;
-  outline: none;
-}
-.field input:focus { border-color: var(--accent); }
-.field input.mono { font-family: 'DM Mono', monospace; font-size: 11px; }
-
-.btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 9px 18px;
-  border-radius: var(--radius-sm);
-  font-family: 'DM Sans', sans-serif;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  border: 1px solid transparent;
-  transition: all 0.15s;
-  text-decoration: none;
-}
-
-.btn-primary {
-  background: var(--accent);
-  color: white;
-  border-color: var(--accent);
-}
-.btn-primary:hover { opacity: 0.88; }
-.btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
-
-.btn-outline {
-  background: transparent;
-  color: var(--text);
-  border-color: var(--border2);
-}
-.btn-outline:hover { background: var(--surface2); }
-
-.btn-ghost {
-  background: transparent;
-  color: var(--text2);
-  border-color: transparent;
-  padding: 9px 12px;
-}
-.btn-ghost:hover { background: var(--surface2); color: var(--text); }
-
-.btn-google {
-  background: white;
-  color: var(--text);
-  border-color: var(--border2);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-}
-.btn-google:hover { box-shadow: 0 2px 6px rgba(0,0,0,0.12); }
-
-.btn-sm { padding: 6px 12px; font-size: 12px; }
-
-.btn-copy {
-  background: var(--accent-bg);
-  color: var(--accent);
-  border-color: transparent;
-}
-.btn-copy:hover { opacity: 0.8; }
-.btn-copy.copied { background: var(--green-bg); color: var(--green); }
-
-.btn-sent-toggle {
-  background: var(--green-bg);
-  color: var(--green);
-  border-color: transparent;
-}
-.btn-sent-toggle:hover { opacity: 0.8; }
-.btn-unsent {
-  background: var(--surface2);
-  color: var(--text2);
-  border-color: transparent;
-}
-.btn-unsent:hover { background: var(--border); }
-
-.metrics {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
-  margin-bottom: 20px;
-}
-
-.metric {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 14px 16px;
-  text-align: center;
-}
-.metric-val { font-size: 26px; font-weight: 600; letter-spacing: -0.5px; }
-.metric-lbl { font-size: 11px; color: var(--text3); font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
-
-.metric.highlight { border-color: var(--accent); background: var(--accent-bg); }
-.metric.highlight .metric-val { color: var(--accent); }
-
-.toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.toolbar-left { display: flex; align-items: center; gap: 8px; }
-.toolbar-right { display: flex; align-items: center; gap: 8px; }
-
-.miner-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  margin-bottom: 10px;
-  overflow: hidden;
-  transition: border-color 0.2s, box-shadow 0.2s;
-}
-
-.miner-card.is-sent {
-  border-color: #6FCF97;
-  box-shadow: 0 0 0 3px rgba(26,122,74,0.06);
-}
-
-.miner-head {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px 16px;
-  cursor: pointer;
-  user-select: none;
-}
-
-.miner-head:hover { background: var(--bg); }
-
-.avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: var(--accent-bg);
-  color: var(--accent);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 13px;
-  font-weight: 600;
-  flex-shrink: 0;
-}
-
-.miner-card.is-sent .avatar { background: var(--green-bg); color: var(--green); }
-
-.miner-info { flex: 1; min-width: 0; }
-.miner-name { font-weight: 600; font-size: 14px; margin-bottom: 2px; }
-.miner-meta { font-size: 12px; color: var(--text2); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-
-.badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px 7px;
-  border-radius: 4px;
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.3px;
-}
-.badge-1 { background: var(--surface2); color: var(--text2); }
-.badge-2 { background: var(--accent-bg); color: var(--accent); }
-.badge-3a { background: var(--amber-bg); color: var(--amber); }
-.badge-3b { background: #F3E8FF; color: #6B21A8; }
-.badge-4 { background: var(--green-bg); color: var(--green); }
-
-.sent-pill {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  background: var(--green-bg);
-  color: var(--green);
-  font-size: 11px;
-  font-weight: 600;
-  padding: 3px 8px;
-  border-radius: 20px;
-}
-
-.chevron {
-  color: var(--text3);
-  font-size: 16px;
-  transition: transform 0.2s;
-  flex-shrink: 0;
-}
-.chevron.open { transform: rotate(180deg); }
-
-.miner-body { display: none; padding: 0 16px 16px; border-top: 1px solid var(--border); }
-.miner-body.open { display: block; }
-
-.msg-preview {
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 14px;
-  font-size: 13px;
-  line-height: 1.8;
-  white-space: pre-wrap;
-  font-family: 'DM Sans', sans-serif;
-  color: var(--text);
-  margin: 12px 0;
-}
-
-.seeker-list { margin: 10px 0 14px; }
-.seeker-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 5px 0;
-  border-bottom: 1px solid var(--border);
-  font-size: 12px;
-  color: var(--text2);
-}
-.seeker-row:last-child { border-bottom: none; }
-.seeker-name { font-weight: 500; color: var(--text); flex: 1; }
-
-.miner-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
-
-.number-tag {
-  font-family: 'DM Mono', monospace;
-  font-size: 11px;
-  background: var(--surface2);
-  padding: 2px 7px;
-  border-radius: 4px;
-  color: var(--text2);
-}
-
-.alert {
-  border-radius: var(--radius-sm);
-  padding: 12px 14px;
-  font-size: 13px;
-  margin-bottom: 14px;
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-}
-.alert-error { background: var(--red-bg); color: var(--red); border: 1px solid #F5C6C3; }
-.alert-success { background: var(--green-bg); color: var(--green); border: 1px solid #A8DFC0; }
-.alert-info { background: var(--accent-bg); color: var(--accent); border: 1px solid #BDD0F8; }
-
-.spinner {
-  display: inline-block;
-  width: 14px;
-  height: 14px;
-  border: 2px solid var(--border2);
-  border-top-color: var(--accent);
-  border-radius: 50%;
-  animation: spin 0.65s linear infinite;
-  flex-shrink: 0;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-
-.empty-state {
-  text-align: center;
-  padding: 48px 20px;
-  color: var(--text3);
-}
-.empty-icon { font-size: 36px; margin-bottom: 12px; }
-.empty-title { font-size: 15px; font-weight: 500; color: var(--text2); margin-bottom: 4px; }
-
-.divider { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
-
-.update-section {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 16px 20px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 20px;
-  flex-wrap: wrap;
-}
-
-.update-label { font-size: 13px; font-weight: 500; flex: 1; min-width: 200px; }
-.update-sub { font-size: 12px; color: var(--text3); font-weight: 400; display: block; }
-
-.tab-row {
-  display: flex;
-  gap: 6px;
-  margin-bottom: 18px;
-}
-.tab-btn {
-  padding: 6px 14px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 500;
-  cursor: pointer;
-  border: 1px solid var(--border2);
-  background: transparent;
-  color: var(--text2);
-  font-family: 'DM Sans', sans-serif;
-  transition: all 0.15s;
-}
-.tab-btn.active { background: var(--text); color: white; border-color: var(--text); }
-.tab-btn:hover:not(.active) { background: var(--surface2); }
-
-.progress-bar {
-  height: 4px;
-  background: var(--border);
-  border-radius: 2px;
-  margin-bottom: 20px;
-  overflow: hidden;
-}
-.progress-fill {
-  height: 100%;
-  background: var(--green);
-  border-radius: 2px;
-  transition: width 0.3s ease;
-}
-
-.google-icon { width: 16px; height: 16px; }
-</style>
-</head>
-<body>
-
-<div class="topbar">
-  <div class="logo">
-    <div class="logo-mark">CC</div>
-    <div>
-      <div class="logo-text">CCF Welcome Center</div>
-      <div class="logo-sub">Miner Nudge Tool</div>
-    </div>
-  </div>
-  <div class="topbar-right" id="topbar-right"></div>
-</div>
-
-<div class="main" id="main"></div>
-
-<script>
-const SHEET_ID = '1wwooblcwXsyeNfeOg_40uY_6J54gBSj1CYvacCCN_Z8';
-const API_KEY = 'AIzaSyD0yOrXGWqSFQYJmaffVnVUhCcOs6jL1g8';
-const CLIENT_ID = '713322125380-uc9e2srfn57k8di08fgktvbjm72r0mf0.apps.googleusercontent.com';
-const SCOPES = 'https://www.googleapis.com/auth/spreadsheets';
-
-const COMPOUND = { 'alyssa jane': 'Alyssa Jane', 'mary grace': 'Mary Grace' };
-const STATUS_VALID = ['1','2','3a','3b','4'];
-const STATUS_LABELS = { '1':'Status 1','2':'Status 2','3a':'Status 3a','3b':'Status 3b','4':'Status 4' };
-
-let app = {
-  view: 'config',
-  imt: 'MR',
-  tabs: 'March 26, April 26',
-  sheetId: SHEET_ID,
-  miners: [],
-  sent: {},
-  open: {},
-  copied: {},
-  loading: false,
-  error: null,
-  success: null,
-  signedIn: false,
-  gapiReady: false,
-  updating: false,
-  updateMsg: null,
-  filter: 'all',
-  accessToken: null
-};
-
-function firstName(name) {
-  const low = name.toLowerCase().trim();
-  for (const [k,v] of Object.entries(COMPOUND)) { if (low.startsWith(k)) return v; }
-  return name.trim().split(/\s+/)[0].replace(/["']/g,'');
-}
-
-function fullName(d, e) {
-  const nick = d.match(/"([^"]+)"/);
-  const first = nick ? nick[1] : d.replace(/["']/g,'').split(/\s+/)[0];
-  const cap = s => s ? s.charAt(0).toUpperCase()+s.slice(1).toLowerCase() : '';
-  return [cap(first), cap(e)].filter(Boolean).join(' ');
-}
-
-function normalizeNum(raw) {
-  if (!raw) return null;
-  let n = String(raw).replace(/[\s\-\(\)\.]/g,'');
-  if (n.includes(',')) return null;
-  if (n.startsWith('09')) n = '+63'+n.slice(1);
-  else if (n.startsWith('639')) n = '+'+n;
-  return /^\+63\d{10}$/.test(n) ? n : null;
-}
-
-function buildMsg(mFirst, seekers) {
-  const groups = {};
-  for (const s of seekers) {
-    if (!groups[s.status]) groups[s.status]=[];
-    groups[s.status].push(s.name);
-  }
-  if (seekers.length === 1) {
-    const n = seekers[0].name, st = seekers[0].status;
-    const openers = {
-      '1': `Pa-follow up lang po sa seeker mo, kung na-reach out na po:\n\n• ${n}\n\nKung may concerns or need help, ping mo lang po ako. 🙏`,
-      '2': `Pa-confirm lang po sa seeker mo — na-contact mo na po ba si:\n\n• ${n}\n\nJust want to make sure di sila na-miss po. 😊`,
-      '3a': `Pa-follow up lang po — may update na po ba kayo ni:\n\n• ${n}\n\nKung wala pa pong response, ok lang po, just keep us posted. 🙏`,
-      '3b': `Pa-update lang po — saang DGroup po na-endorse si:\n\n• ${n}\n\nPara po ma-track natin attendance. 🌷`,
-      '4': `Pa-confirm lang po — naka-attend na po ba sa DGroup si:\n\n• ${n}\n\nExcited po kami malaman placement update. 🙏`
-    };
-    return `Hi po ${mFirst}, blessed Monday! 🌸\n${openers[st]||openers['2']}\nThank you po and God bless! 🙏✨`;
-  }
-  const sections = [
-    {k:'1', lbl:'Kung na-reach out na po:'},
-    {k:'2', lbl:'Kung na-contact na po:'},
-    {k:'3a', lbl:'May update na po ba (waiting for response):'},
-    {k:'3b', lbl:'Saang DGroup po na-endorse:'},
-    {k:'4', lbl:'Naka-attend na po ba sa DGroup:'},
-  ];
-  let msg = `Hi po ${mFirst}, blessed Monday! 🌸\nPa-follow up lang po sa mga seekers mo, kung may updates na po:\n`;
-  for (const sec of sections) {
-    const list = groups[sec.k]||[];
-    if (!list.length) continue;
-    msg += `\n${sec.lbl}\n`;
-    for (const n of list) msg += `• ${n}\n`;
-  }
-  return msg + `\nThank you po and God bless! 🙏✨`;
-}
-
-async function loadSheet() {
-  app.loading = true; app.error = null; app.miners = []; app.sent = {}; app.open = {}; render();
-  const tabs = app.tabs.split(',').map(t=>t.trim()).filter(Boolean);
-  const imt = app.imt.trim().toUpperCase();
-  const allRows = [];
-  for (const tab of tabs) {
-    const safeTab = tab.replace(/'/g, "''");
-    const rangeParam = `'${safeTab}'!A:O`;
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${app.sheetId}/values:batchGet?ranges=${encodeURIComponent(rangeParam)}&key=${API_KEY}`;
-    try {
-      const r = await fetch(url);
-      if (!r.ok) { const e=await r.json(); throw new Error(e.error?.message||'Read failed'); }
-      const data = await r.json();
-      const rows = (data.valueRanges&&data.valueRanges[0]&&data.valueRanges[0].values)||[];
-      for (let i=1; i<rows.length; i++) {
-        const row = rows[i];
-        const colA = (row[0]||'').trim().toUpperCase();
-        if (colA !== imt) continue;
-        const colD=row[3]||'', colE=row[4]||'', colJ=(row[9]||'').trim(), colK=(row[10]||'').trim();
-        const colM=(row[12]||'').trim(), colN=row[13]||'';
-        if (!colJ || !colK) continue;
-        const statusCode = colM.split(' ')[0].trim().toLowerCase();
-        if (!STATUS_VALID.includes(statusCode)) continue;
-        const num = normalizeNum(colK);
-        if (!num) continue;
-        allRows.push({ tab, rowIdx:i+1, colJ, number:num, statusCode, colN, name:fullName(colD,colE) });
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CCF Welcome Center Miner Nudge Tool</title>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #17324d;
+        --blue: #1e6b9f;
+        --sky: #e7f4fb;
+        --leaf: #23785a;
+        --gold: #b9822b;
+        --line: #dce5ee;
+        --muted: #62748a;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       }
-    } catch(e) {
-      app.loading=false; app.error=`Error reading "${tab}": ${e.message}`; render(); return;
-    }
-  }
-  const map = {};
-  for (const row of allRows) {
-    const k = row.number;
-    if (!map[k]) map[k]={name:row.colJ, number:k, first:firstName(row.colJ), rows:[], seekers:[]};
-    map[k].rows.push(row);
-    map[k].seekers.push({name:row.name, status:row.statusCode, tab:row.tab, rowIdx:row.rowIdx});
-  }
-  app.miners = Object.values(map)
-    .map(m=>({...m, message:buildMsg(m.first,m.seekers)}))
-    .sort((a,b)=>b.seekers.length-a.seekers.length);
-  app.loading=false; app.view='queue'; render();
-}
-
-async function updateColN() {
-  const sentIdxs = Object.keys(app.sent).filter(k=>app.sent[k]).map(Number);
-  if (!sentIdxs.length) { app.error='No miners marked as sent yet.'; render(); return; }
-  if (!app.accessToken) { app.error='Please sign in to Google first.'; render(); return; }
-  app.updating=true; app.error=null; app.updateMsg=null; render();
-  const today = new Date();
-  const ds = `${today.getMonth()+1}/${today.getDate()}/${today.getFullYear()}`;
-  const data = [];
-  for (const idx of sentIdxs) {
-    for (const row of app.miners[idx].rows) {
-      data.push({range:`'${row.tab}'!N${row.rowIdx}`, values:[[ds]]});
-    }
-  }
-  try {
-    const resp = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${app.sheetId}/values:batchUpdate`,{
-      method:'POST',
-      headers:{'Authorization':`Bearer ${app.accessToken}`,'Content-Type':'application/json'},
-      body:JSON.stringify({valueInputOption:'USER_ENTERED', data})
-    });
-    if (!resp.ok) { const e=await resp.json(); throw new Error(e.error?.message||'Update failed'); }
-    app.updating=false;
-    app.updateMsg=`Column N updated for ${data.length} row${data.length!==1?'s':''} across ${sentIdxs.length} miner${sentIdxs.length!==1?'s':''}.`;
-    render();
-  } catch(e) { app.updating=false; app.error=`Update failed: ${e.message}`; render(); }
-}
-
-function copyMsg(idx) {
-  navigator.clipboard.writeText(app.miners[idx].message).then(()=>{
-    app.copied[idx]=true; render();
-    setTimeout(()=>{ app.copied[idx]=false; render(); },2000);
-  });
-}
-
-function toggleSent(idx,e) {
-  e.stopPropagation();
-  app.sent[idx]=!app.sent[idx]; render();
-}
-
-function toggleOpen(idx) {
-  app.open[idx]=!app.open[idx]; render();
-}
-
-function initGapi() {
-  gapi.load('client', async ()=>{
-    await gapi.client.init({ apiKey:API_KEY, discoveryDocs:['https://sheets.googleapis.com/$discovery/rest?version=v4'] });
-    app.gapiReady=true; render();
-  });
-}
-
-function doSignIn() {
-  const client = google.accounts.oauth2.initTokenClient({
-    client_id: CLIENT_ID,
-    scope: SCOPES,
-    callback: (resp)=>{
-      if (resp.error) { app.error='Sign-in failed: '+resp.error; render(); return; }
-      app.signedIn=true; app.accessToken=resp.access_token; app.error=null; render();
-    }
-  });
-  client.requestAccessToken();
-}
-
-function initials(name) {
-  return name.trim().split(/\s+/).slice(0,2).map(w=>w[0]||'').join('').toUpperCase();
-}
-
-function esc(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
-
-function renderTopbar() {
-  const el = document.getElementById('topbar-right');
-  if (app.view==='queue') {
-    el.innerHTML = app.signedIn
-      ? `<div class="signin-badge"><div class="dot"></div>Google connected</div>`
-      : `<button class="btn btn-google btn-sm" onclick="doSignIn()">
-           <svg class="google-icon" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
-           Sign in to Google
-         </button>`;
-  } else { el.innerHTML=''; }
-}
-
-function render() {
-  renderTopbar();
-  const main = document.getElementById('main');
-
-  if (app.loading) {
-    main.innerHTML=`<div style="display:flex;align-items:center;gap:12px;padding:60px 0;color:var(--text2)"><div class="spinner"></div>Reading sheet, filtering MR rows...</div>`;
-    return;
-  }
-
-  if (app.view==='config') {
-    main.innerHTML=`
-<div class="page-title">Weekly follow-up</div>
-<p class="page-sub">Read the Harvests sheet, draft Taglish nudges, mark sends, update column N.</p>
-<div class="card">
-  <div class="card-title">Sheet settings</div>
-  <div class="field"><label>IMT initials</label><input id="imt" value="${esc(app.imt)}" style="max-width:80px"></div>
-  <div class="field"><label>Tabs to process (comma-separated)</label><input id="tabs" value="${esc(app.tabs)}"></div>
-  <div class="field"><label>Sheet ID</label><input id="sid" class="mono" value="${esc(app.sheetId)}"></div>
-  ${app.error?`<div class="alert alert-error"><span>⚠</span>${esc(app.error)}</div>`:''}
-  <div style="display:flex;gap:10px;align-items:center;margin-top:4px">
-    <button class="btn btn-primary" onclick="doLoad()">Load sheet</button>
-    <span style="font-size:12px;color:var(--text3)">Sign in to Google after loading (needed for column N updates)</span>
-  </div>
-</div>`;
-    return;
-  }
-
-  const sentCount = Object.values(app.sent).filter(Boolean).length;
-  const totalSeekers = app.miners.reduce((a,m)=>a+m.seekers.length,0);
-  const pct = app.miners.length ? Math.round(sentCount/app.miners.length*100) : 0;
-
-  const filtered = app.miners.filter((_,i)=>{
-    if (app.filter==='sent') return !!app.sent[i];
-    if (app.filter==='unsent') return !app.sent[i];
-    return true;
-  });
-
-  const cards = filtered.map((m,fi)=>{
-    const realIdx = app.miners.indexOf(m);
-    const isSent=!!app.sent[realIdx], isOpen=!!app.open[realIdx], isCopied=!!app.copied[realIdx];
-    const statuses=[...new Set(m.seekers.map(s=>s.status))];
-    const badgeHtml=statuses.map(st=>`<span class="badge badge-${st}">${st.toUpperCase()}</span>`).join('');
-    return `
-<div class="miner-card${isSent?' is-sent':''}">
-  <div class="miner-head" onclick="toggleOpen(${realIdx})">
-    <div class="avatar">${initials(m.name)}</div>
-    <div class="miner-info">
-      <div class="miner-name">${esc(m.name)}</div>
-      <div class="miner-meta">
-        <span class="number-tag">${esc(m.number)}</span>
-        <span>${m.seekers.length} seeker${m.seekers.length!==1?'s':''}</span>
-        ${badgeHtml}
+      * { box-sizing: border-box; }
+      body { margin: 0; background: #f5f8fb; color: #0f2540; }
+      button { font: inherit; }
+      .topbar { background: white; border-bottom: 1px solid var(--line); }
+      .wrap { max-width: 1120px; margin: 0 auto; padding: 18px 16px; }
+      .toprow { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+      .eyebrow { color: var(--blue); font-size: 13px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+      h1 { margin: 4px 0 0; color: var(--ink); font-size: 24px; line-height: 1.15; }
+      .date { background: var(--sky); color: var(--ink); border-radius: 7px; padding: 10px 12px; font-size: 14px; font-weight: 650; }
+      .btn { border: 1px solid #cbd7e3; border-radius: 7px; background: white; color: var(--ink); padding: 9px 13px; cursor: pointer; font-weight: 700; display: inline-flex; align-items: center; gap: 8px; }
+      .btn:hover { background: #f7fafc; }
+      .btn.primary { background: var(--blue); color: white; border-color: var(--blue); }
+      .btn.primary:hover { background: var(--ink); }
+      .btn.gold { background: var(--gold); color: white; border-color: var(--gold); }
+      .btn.green { background: var(--leaf); color: white; border-color: var(--leaf); }
+      .btn:disabled { cursor: not-allowed; opacity: .65; background: #cbd5e1; border-color: #cbd5e1; color: white; }
+      .toolbar { display: flex; align-items: end; justify-content: space-between; gap: 14px; flex-wrap: wrap; margin-top: 20px; }
+      .field { display: grid; gap: 6px; min-width: 220px; }
+      .field label { color: #49627d; font-size: 12px; font-weight: 800; text-transform: uppercase; }
+      select { min-height: 42px; border: 1px solid #cbd7e3; border-radius: 7px; background: white; color: var(--ink); padding: 0 12px; font: inherit; font-weight: 750; }
+      .report-line { color: #52667c; line-height: 1.55; max-width: 640px; }
+      .report-grid { display: grid; grid-template-columns: 1.35fr repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 12px; }
+      .report-card { background: #f8fafc; border: 1px solid var(--line); border-radius: 8px; padding: 13px; }
+      .report-card.primary { background: #f0f9ff; border-color: #bae6fd; }
+      .report-label { color: #49627d; font-size: 12px; font-weight: 800; text-transform: uppercase; }
+      .report-value { color: var(--ink); font-size: 24px; font-weight: 820; margin-top: 6px; }
+      .report-note { color: #52667c; font-size: 13px; margin-top: 6px; line-height: 1.4; }
+      .metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 8px; }
+      .metric, .panel, .card { background: white; border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 8px 26px rgba(23, 50, 77, .06); }
+      .metric { padding: 16px; }
+      .metric-label { color: #49627d; font-size: 12px; font-weight: 700; text-transform: uppercase; }
+      .metric-value { color: var(--ink); font-size: 26px; font-weight: 760; margin-top: 8px; }
+      .panel { margin-top: 20px; padding: 16px; }
+      .progress-head { display: flex; justify-content: space-between; color: #3d5167; font-size: 14px; font-weight: 700; }
+      .track { height: 12px; background: #edf2f7; border-radius: 99px; margin-top: 10px; overflow: hidden; }
+      .bar { height: 100%; background: var(--leaf); border-radius: 99px; width: 0%; transition: width .2s ease; }
+      .controls { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-top: 16px; }
+      .tabs { display: inline-flex; gap: 4px; border: 1px solid var(--line); background: #f8fafc; padding: 4px; border-radius: 7px; }
+      .tab { border: 0; border-radius: 5px; background: transparent; color: #30465e; padding: 8px 14px; font-weight: 700; cursor: pointer; }
+      .tab.active { background: white; box-shadow: 0 1px 4px rgba(15, 37, 64, .08); color: var(--ink); }
+      .notice { margin-top: 16px; border-radius: 8px; padding: 14px 16px; font-size: 14px; font-weight: 650; line-height: 1.5; }
+      .notice.error { border: 1px solid #fca5a5; background: #fef2f2; color: #991b1b; }
+      .notice.success { border: 1px solid #a7f3d0; background: #ecfdf5; color: #065f46; }
+      .empty { padding: 32px 18px; text-align: center; color: #52667c; }
+      .cards { margin-top: 18px; display: grid; gap: 12px; }
+      .card.sent { border-color: #86efac; box-shadow: 0 0 0 1px #bbf7d0, 0 8px 26px rgba(23, 50, 77, .06); }
+      .card-head { width: 100%; display: flex; align-items: center; gap: 14px; border: 0; background: white; padding: 16px; cursor: pointer; text-align: left; }
+      .card-head:hover { background: #f8fafc; }
+      .avatar { width: 44px; height: 44px; border-radius: 999px; background: var(--sky); color: var(--blue); display: grid; place-items: center; font-weight: 800; flex: 0 0 auto; }
+      .card.sent .avatar { background: #dcfce7; color: #166534; }
+      .grow { min-width: 0; flex: 1; }
+      .name-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+      .miner-name { font-weight: 800; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .pill { border-radius: 999px; background: #dcfce7; color: #166534; padding: 3px 8px; font-size: 12px; font-weight: 800; }
+      .subline { color: var(--muted); font-size: 14px; margin-top: 5px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+      .copy-mini { border: 1px solid #cbd5e1; background: white; color: #334155; border-radius: 6px; padding: 5px 8px; cursor: pointer; font-size: 12px; font-weight: 750; }
+      .badges { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 9px; }
+      .badge { display: inline-flex; border: 1px solid; border-radius: 6px; padding: 3px 8px; font-size: 12px; font-weight: 750; }
+      .s1 { background: #e0f2fe; color: #075985; border-color: #bae6fd; }
+      .s2 { background: #fef3c7; color: #78350f; border-color: #fde68a; }
+      .s3a { background: #ede9fe; color: #5b21b6; border-color: #ddd6fe; }
+      .s3b { background: #ffe4e6; color: #9f1239; border-color: #fecdd3; }
+      .s4 { background: #dcfce7; color: #166534; border-color: #bbf7d0; }
+      .s5 { background: #f3e8ff; color: #6b21a8; border-color: #e9d5ff; }
+      .s6a { background: #ccfbf1; color: #0f766e; border-color: #99f6e4; }
+      .s6b { background: #cffafe; color: #155e75; border-color: #a5f3fc; }
+      .s6c { background: #dbeafe; color: #1d4ed8; border-color: #bfdbfe; }
+      .s7 { background: #ecfccb; color: #3f6212; border-color: #d9f99d; }
+      .s8 { background: #e5e7eb; color: #374151; border-color: #d1d5db; }
+      .chev { color: #64748b; font-weight: 900; }
+      .open .chev { transform: rotate(180deg); }
+      .card-body { display: none; border-top: 1px solid var(--line); background: #f8fafc; padding: 16px; grid-template-columns: minmax(240px, .85fr) minmax(320px, 1.15fr); gap: 16px; }
+      .open .card-body { display: grid; }
+      .section-title { font-size: 14px; font-weight: 800; color: #334155; margin-bottom: 8px; }
+      .seeker { border: 1px solid var(--line); border-radius: 7px; background: white; padding: 10px; margin-bottom: 8px; }
+      .seeker-name { font-weight: 760; color: #14283f; }
+      textarea { width: 100%; min-height: 260px; resize: vertical; border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px; font: 14px/1.55 inherit; color: #172033; background: white; }
+      textarea.remarks-box { min-height: 110px; margin-top: 6px; }
+      .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+      details { margin-top: 18px; }
+      summary { cursor: pointer; font-weight: 800; color: #334155; }
+      .skipped-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 12px; }
+      .skipped-item { background: #f8fafc; border-radius: 6px; padding: 8px; color: #52667c; font-size: 13px; }
+      @media (max-width: 760px) {
+        .report-grid { grid-template-columns: 1fr; }
+        .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .open .card-body { display: block; }
+        .message-col { margin-top: 16px; }
+        .skipped-grid { grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="wrap toprow">
+        <div>
+          <div class="eyebrow">CCF Welcome Center</div>
+          <h1>Miner Nudge Tool</h1>
+        </div>
+        <div class="toprow">
+          <div class="date" id="todayLabel"></div>
+          <button class="btn" id="refreshBtn" hidden>↻ Refresh</button>
+          <button class="btn primary" id="signInBtn">Sign in with Google</button>
+        </div>
       </div>
-    </div>
-    ${isSent?`<div class="sent-pill"><div class="dot"></div>Sent</div>`:''}
-    <span class="chevron${isOpen?' open':''}">&#8964;</span>
-  </div>
-  ${isOpen?`<div class="miner-body open">
-    <div class="seeker-list">
-      ${m.seekers.map(s=>`<div class="seeker-row"><span class="seeker-name">${esc(s.name)}</span><span class="badge badge-${s.status}">${s.status.toUpperCase()}</span><span style="font-size:11px;color:var(--text3)">${s.tab}</span></div>`).join('')}
-    </div>
-    <div class="msg-preview">${esc(m.message)}</div>
-    <div class="miner-actions">
-      <button class="btn btn-copy btn-sm${isCopied?' copied':''}" onclick="copyMsg(${realIdx})">${isCopied?'Copied!':'Copy message'}</button>
-      <button class="btn btn-sm ${isSent?'btn-sent-toggle':'btn-unsent'}" onclick="toggleSent(${realIdx},event)">${isSent?'Mark unsent':'Mark as sent'}</button>
-    </div>
-  </div>`:`<div class="miner-body"></div>`}
-</div>`;
-  }).join('');
+    </header>
 
-  main.innerHTML=`
-<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-  <div class="page-title">Queue</div>
-  <button class="btn btn-ghost btn-sm" onclick="goConfig()">&#8592; Back to config</button>
-</div>
-<p class="page-sub" style="margin-bottom:16px">${new Date().toLocaleDateString('en-PH',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}</p>
+    <main class="wrap">
+      <section class="panel">
+        <div class="toolbar">
+          <div class="field">
+            <label for="imtSelect">IMT Assignment</label>
+            <select id="imtSelect" disabled>
+              <option value="MR">MR</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="fromMonthSelect">From Month</label>
+            <select id="fromMonthSelect" disabled>
+              <option>From</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="toMonthSelect">To Month</label>
+            <select id="toMonthSelect" disabled>
+              <option>To</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="statusScopeSelect">Statuses to Include</label>
+            <select id="statusScopeSelect" disabled>
+              <option value="all">All follow-up except 6a and 8</option>
+              <option value="active">Active only: 1-4</option>
+            </select>
+          </div>
+          <div class="report-line" id="encouragement">
+            Sign in to see the IMT dashboard and nudge queue.
+          </div>
+        </div>
+        <div class="report-grid">
+          <div class="report-card primary">
+            <div class="report-label">Placement Progress</div>
+            <div class="report-value" id="placementMetric">0%</div>
+            <div class="report-note" id="placementNote">Placed / connected seekers out of assigned seekers in the selected range.</div>
+          </div>
+          <div class="report-card">
+            <div class="report-label">Assigned Range</div>
+            <div class="report-value" id="assignedMetric">0</div>
+          </div>
+          <div class="report-card">
+            <div class="report-label">Placed / Connected</div>
+            <div class="report-value" id="placedMetric">0</div>
+          </div>
+          <div class="report-card">
+            <div class="report-label">Needs Nudge</div>
+            <div class="report-value" id="needsNudgeMetric">0</div>
+          </div>
+          <div class="report-card">
+            <div class="report-label">Touched Today</div>
+            <div class="report-value" id="touchedTodayMetric">0</div>
+          </div>
+        </div>
+      </section>
 
-<div class="metrics">
-  <div class="metric"><div class="metric-val">${app.miners.length}</div><div class="metric-lbl">Miners</div></div>
-  <div class="metric"><div class="metric-val">${totalSeekers}</div><div class="metric-lbl">Seekers</div></div>
-  <div class="metric highlight"><div class="metric-val">${sentCount}</div><div class="metric-lbl">Sent</div></div>
-  <div class="metric"><div class="metric-val">${app.miners.length-sentCount}</div><div class="metric-lbl">Remaining</div></div>
-</div>
+      <section class="metrics">
+        <div class="metric"><div class="metric-label">Queue Miners</div><div class="metric-value" id="minersMetric">0</div></div>
+        <div class="metric"><div class="metric-label">Queue Seekers</div><div class="metric-value" id="seekersMetric">0</div></div>
+        <div class="metric"><div class="metric-label">Sent</div><div class="metric-value" id="sentMetric">0</div></div>
+        <div class="metric"><div class="metric-label">Remaining</div><div class="metric-value" id="remainingMetric">0</div></div>
+      </section>
 
-<div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+      <section class="panel">
+        <div class="progress-head"><span>Progress</span><span id="progressText">0%</span></div>
+        <div class="track"><div class="bar" id="progressBar"></div></div>
+        <div class="controls">
+          <div class="tabs">
+            <button class="tab" data-filter="all">All</button>
+            <button class="tab active" data-filter="remaining">Remaining</button>
+            <button class="tab" data-filter="sent">Sent</button>
+          </div>
+          <button class="btn gold" id="updateBtn" disabled>✓ Update Column N for marked sent</button>
+        </div>
+      </section>
 
-<div class="update-section">
-  <div class="update-label">
-    Update column N
-    <span class="update-sub">${sentCount} miner${sentCount!==1?'s':''} marked sent &mdash; write today's date to their rows</span>
-  </div>
-  ${app.updating
-    ? `<button class="btn btn-primary" disabled><span class="spinner" style="border-top-color:white"></span> Updating...</button>`
-    : `<button class="btn btn-primary" onclick="updateColN()" ${!app.signedIn||!sentCount?'disabled':''}>${!app.signedIn?'Sign in first':sentCount?'Update column N':'Mark miners sent first'}</button>`
-  }
-  ${!app.signedIn?`<button class="btn btn-google btn-sm" onclick="doSignIn()">
-    <svg class="google-icon" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
-    Sign in
-  </button>`:''}
-</div>
+      <div id="notice"></div>
+      <section class="panel" id="signInPanel">
+        <h2 style="margin:0;color:var(--ink);font-size:18px;">Sign in to load the queue</h2>
+        <p style="margin:10px 0 0;color:#52667c;line-height:1.55;">The centralized Sheet is private, so the app asks Google for Sheets access and then loads all monthly tabs automatically.</p>
+      </section>
+      <section class="cards" id="cards"></section>
+      <details class="panel" id="skippedPanel" hidden>
+        <summary id="skippedSummary">Skipped MR rows</summary>
+        <div class="skipped-grid" id="skippedGrid"></div>
+      </details>
+    </main>
 
-${app.error?`<div class="alert alert-error" style="margin-bottom:14px"><span>⚠</span>${esc(app.error)}</div>`:''}
-${app.updateMsg?`<div class="alert alert-success" style="margin-bottom:14px"><span>✓</span>${esc(app.updateMsg)}</div>`:''}
+    <script>
+      const SHEET_ID = '1TI_bslfoK96fhM4PJ45TlYlmMLTCEq2svVgqXFBdfWY';
+      const API_KEY = 'AIzaSyD0yOrXGWqSFQYJmaffVnVUhCcOs6jL1g8';
+      const CLIENT_ID = '713322125380-uc9e2srfn57k8di08fgktvbjm72r0mf0.apps.googleusercontent.com';
+      const SCOPE = 'https://www.googleapis.com/auth/spreadsheets';
+      const ACTIVE_NUDGE_CODES = ['1', '2', '3a', '3b', '4'];
+      const ALL_FOLLOW_UP_CODES = ['1', '2', '3a', '3b', '4', '5', '6b', '6c', '7'];
+      const PLACED_CODES = new Set(['6a', '6b', '6c', '7']);
+      const IMT_PRIORITY = ['MR', 'G', 'JG', 'JP', 'JT'];
+      const STATUS_LABELS = {
+        1: 'Reach out',
+        2: 'Contact confirm',
+        '3a': 'Waiting response',
+        '3b': 'DGroup endorsed',
+        4: 'DGroup attendance',
+        5: 'Repost details',
+        '6a': 'Placed (Miner)',
+        '6b': "Placed (Miner's DL)",
+        '6c': 'Placed in another DL',
+        7: 'Already has DGroup',
+        8: 'Placement unsuccessful',
+      };
+      const COMPOUND_NAMES = { 'alyssa jane': 'Alyssa Jane', 'mary grace': 'Mary Grace' };
 
-<div class="tab-row">
-  <button class="tab-btn${app.filter==='all'?' active':''}" onclick="setFilter('all')">All (${app.miners.length})</button>
-  <button class="tab-btn${app.filter==='unsent'?' active':''}" onclick="setFilter('unsent')">Remaining (${app.miners.length-sentCount})</button>
-  <button class="tab-btn${app.filter==='sent'?' active':''}" onclick="setFilter('sent')">Sent (${sentCount})</button>
-</div>
+      let accessToken = sessionStorage.getItem('googleAccessToken') || '';
+      let miners = [];
+      let skipped = [];
+      let imtOptions = [];
+      let reportByImt = {};
+      let activeReport = null;
+      let selectedImt = localStorage.getItem('selectedImt') || 'MR';
+      let monthTabs = [];
+      let selectedMonthTabs = [];
+      let selectedFromMonth = localStorage.getItem('selectedFromMonth') || '';
+      let selectedToMonth = localStorage.getItem('selectedToMonth') || '';
+      let selectedStatusScope = localStorage.getItem('selectedStatusScope') || 'all';
+      let sent = new Set(JSON.parse(localStorage.getItem(sentStorageKey()) || '[]'));
+      let expanded = new Set();
+      let copiedMessage = '';
+      let copiedNumber = '';
+      let filter = 'remaining';
+      let tokenClient;
 
-${filtered.length===0?`<div class="empty-state"><div class="empty-icon">&#10003;</div><div class="empty-title">All done for this filter</div></div>`:cards}`;
-}
+      const $ = (id) => document.getElementById(id);
+      $('todayLabel').textContent = new Intl.DateTimeFormat('en-PH', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }).format(new Date());
 
-function doLoad() {
-  app.imt = document.getElementById('imt').value.trim().toUpperCase()||'MR';
-  app.tabs = document.getElementById('tabs').value||'March 26, April 26';
-  app.sheetId = document.getElementById('sid').value.trim()||SHEET_ID;
-  loadSheet();
-}
+      function sentStorageKey() {
+        return `sentMiners:${selectedImt}:${selectedFromMonth || 'from'}:${selectedToMonth || 'to'}:${selectedStatusScope}`;
+      }
 
-function goConfig() {
-  app.view='config'; app.error=null; app.updateMsg=null; render();
-}
+      function normalizeNum(raw) {
+        let n = String(raw ?? '').replace(/[\s\-().]/g, '');
+        if (n.includes(',')) return null;
+        if (n.startsWith('09')) n = '+63' + n.slice(1);
+        else if (n.startsWith('639')) n = '+' + n;
+        if (!/^\+63\d{10}$/.test(n)) return null;
+        return n;
+      }
+      function titleCase(value) {
+        return String(value ?? '').trim().split(/\s+/).map((part) =>
+          part.split('-').map((chunk) => chunk ? chunk.charAt(0).toUpperCase() + chunk.slice(1).toLowerCase() : '').join('-')
+        ).join(' ');
+      }
+      function resolveGuestName(colD, colE) {
+        const firstCell = String(colD ?? '');
+        const nick = firstCell.match(/"([^"]+)"/);
+        const first = nick ? nick[1] : firstCell.replace(/["']/g, '').split(/\s+/)[0];
+        return [titleCase(first), titleCase(colE)].filter(Boolean).join(' ');
+      }
+      function getMinerFirstName(fullName) {
+        const clean = String(fullName ?? '').trim();
+        const lower = clean.toLowerCase();
+        for (const [key, val] of Object.entries(COMPOUND_NAMES)) if (lower.startsWith(key)) return val;
+        return clean.split(/\s+/)[0]?.replace(/["']/g, '') || 'Sis';
+      }
+      function extractStatus(raw) {
+        const token = String(raw ?? '').trim().split(/\s+/)[0]?.toLowerCase();
+        if (token === '3') return '3a';
+        if (token === '6') return '6a';
+        return token;
+      }
+      function initials(name) {
+        return String(name ?? '').trim().split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join('') || 'MR';
+      }
+      function quoteSheetName(tab) {
+        return `'${String(tab).replace(/'/g, "''")}'`;
+      }
+      function columnLetter(index) {
+        let n = index + 1;
+        let letters = '';
+        while (n > 0) {
+          const rem = (n - 1) % 26;
+          letters = String.fromCharCode(65 + rem) + letters;
+          n = Math.floor((n - 1) / 26);
+        }
+        return letters;
+      }
+      function normalizeHeader(value) {
+        return String(value ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      }
+      function findColumnIndex(headerRow, names, fallbackIndex) {
+        const targets = names.map(normalizeHeader);
+        const index = headerRow.findIndex((cell) => targets.includes(normalizeHeader(cell)));
+        return index >= 0 ? index : fallbackIndex;
+      }
+      function parseRangeTab(range) {
+        const raw = range.includes('!') ? range.slice(0, range.indexOf('!')) : range;
+        return raw.startsWith("'") && raw.endsWith("'") ? raw.slice(1, -1).replace(/''/g, "'") : raw;
+      }
+      function isMonthlyTab(tab) {
+        return /^(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*'?\s*\d{2}$/i.test(String(tab ?? '').trim());
+      }
+      function monthSortValue(tab) {
+        const monthOrder = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12 };
+        const text = String(tab ?? '').trim().toLowerCase();
+        const match = text.match(/^(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*'?\s*(\d{2})/i);
+        if (!match) return 999999;
+        return Number(`20${match[2]}`) * 100 + monthOrder[match[1].slice(0, 3)];
+      }
+      function isCurrentYearToDateTab(tab) {
+        const value = monthSortValue(tab);
+        if (value === 999999) return false;
+        const now = new Date();
+        const start = now.getFullYear() * 100 + 1;
+        const current = now.getFullYear() * 100 + now.getMonth() + 1;
+        return value >= start && value <= current;
+      }
+      function monthLabel(tab) {
+        const monthNames = { jan: 'January', feb: 'February', mar: 'March', apr: 'April', may: 'May', jun: 'June', jul: 'July', aug: 'August', sep: 'September', oct: 'October', nov: 'November', dec: 'December' };
+        const match = String(tab ?? '').trim().toLowerCase().match(/^(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*'?\s*(\d{2})/i);
+        return match ? `${monthNames[match[1].slice(0, 3)]} 20${match[2]}` : String(tab);
+      }
+      function normalizeMonthRange(tabs) {
+        if (!tabs.length) return [];
+        if (!selectedFromMonth || !tabs.includes(selectedFromMonth)) selectedFromMonth = tabs[0];
+        if (!selectedToMonth || !tabs.includes(selectedToMonth)) selectedToMonth = tabs[tabs.length - 1];
+        if (monthSortValue(selectedFromMonth) > monthSortValue(selectedToMonth)) {
+          const previousFrom = selectedFromMonth;
+          selectedFromMonth = selectedToMonth;
+          selectedToMonth = previousFrom;
+        }
+        localStorage.setItem('selectedFromMonth', selectedFromMonth);
+        localStorage.setItem('selectedToMonth', selectedToMonth);
+        const fromValue = monthSortValue(selectedFromMonth);
+        const toValue = monthSortValue(selectedToMonth);
+        return tabs.filter((tab) => {
+          const value = monthSortValue(tab);
+          return value >= fromValue && value <= toValue;
+        });
+      }
+      function selectedRangeLabel() {
+        if (!selectedMonthTabs.length) return 'the selected range';
+        if (selectedMonthTabs.length === 1) return monthLabel(selectedMonthTabs[0]);
+        return `${monthLabel(selectedMonthTabs[0])} to ${monthLabel(selectedMonthTabs[selectedMonthTabs.length - 1])}`;
+      }
+      function todaySheetDate() {
+        const now = new Date();
+        return `${now.getMonth() + 1}/${now.getDate()}/${now.getFullYear()}`;
+      }
+      function normalizeDateCell(value) {
+        const text = String(value ?? '').trim();
+        if (!text) return '';
+        const match = text.match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?$/);
+        if (!match) return text;
+        const year = match[3] ? Number(match[3].length === 2 ? `20${match[3]}` : match[3]) : new Date().getFullYear();
+        return `${Number(match[1])}/${Number(match[2])}/${year}`;
+      }
+      function badge(code, count = '') {
+        const cls = `s${String(code).replace(/[^a-z0-9]/g, '')}`;
+        return `<span class="badge ${cls}">${STATUS_LABELS[code] || code}${count === '' ? '' : ` · ${count}`}</span>`;
+      }
+      function makeMessage(miner) {
+        const names = miner.seekers.map((seeker) => `• ${seeker.fullName}`).join('\n');
+        return `Hi po ${miner.firstName}, blessed day! 🌸\nFollow up po sana ng status ng mga following seekers kung nakapag join na po ng DGroup or nag response po sa message nyo:\n\nSeekers:\n${names}\n\nThank you po and God bless! 🙏✨`;
+      }
+      function showNotice(type, text) {
+        $('notice').innerHTML = text ? `<div class="notice ${type}">${escapeHtml(text)}</div>` : '';
+      }
+      function escapeHtml(text) {
+        return String(text).replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[char]));
+      }
+      function minerKey(name) {
+        return titleCase(name).toLowerCase().replace(/\s+/g, ' ').trim();
+      }
+      function cleanImt(value) {
+        return String(value ?? '').trim().toUpperCase();
+      }
+      function sortImts(values) {
+        return [...values].sort((a, b) => {
+          const ai = IMT_PRIORITY.indexOf(a);
+          const bi = IMT_PRIORITY.indexOf(b);
+          if (ai !== -1 || bi !== -1) return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
+          return a.localeCompare(b);
+        });
+      }
+      function freshReport(code) {
+        return { code, total: 0, placed: 0, needsNudge: 0, touchedToday: 0, repost: 0, unsuccessful: 0 };
+      }
+      function selectedStatusCodes() {
+        return selectedStatusScope === 'active' ? new Set(ACTIVE_NUDGE_CODES) : new Set(ALL_FOLLOW_UP_CODES);
+      }
+      function selectedStatusLabel() {
+        return selectedStatusScope === 'active' ? 'active statuses 1, 2, 3a, 3b, and 4' : 'all follow-up statuses except 6a and 8';
+      }
+      function buildModel(valueRanges, selectedAssignment) {
+        const candidates = [];
+        const skippedRows = [];
+        const assignments = new Set();
+        const reports = {};
+        const remarkRowsByMiner = new Map();
+        const remarksByMiner = new Map();
+        const includedStatuses = selectedStatusCodes();
+        for (const range of valueRanges) {
+          const tab = parseRangeTab(range.range);
+          const values = range.values || [];
+          const headerRow = values[0] || [];
+          const remarksIndex = findColumnIndex(headerRow, ['IMT Remarks', 'IMT Remark', 'Remarks'], 14);
+          values.forEach((row, index) => {
+            const rowIdx = index + 1;
+            const imt = cleanImt(row[0]);
+            if (!imt) return;
+            if (rowIdx === 1 || imt === 'IMT ASSIGNMENT') return;
+            assignments.add(imt);
+            reports[imt] ||= freshReport(imt);
+            reports[imt].total += 1;
 
-function setFilter(f) { app.filter=f; render(); }
+            const minerName = String(row[9] ?? '').trim();
+            const guestName = resolveGuestName(row[3], row[4]) || 'Unnamed guest';
+            const displayMinerName = minerName ? titleCase(minerName) : 'Missing miner';
+            const status = extractStatus(row[12]);
+            const touchedToday = normalizeDateCell(row[13]) === todaySheetDate();
+            const remarks = String(row[remarksIndex] ?? '').trim();
 
-window.doLoad=doLoad; window.goConfig=goConfig; window.doSignIn=doSignIn;
-window.copyMsg=copyMsg; window.toggleSent=toggleSent; window.toggleOpen=toggleOpen;
-window.updateColN=updateColN; window.setFilter=setFilter; window.initGapi=initGapi;
+            if (PLACED_CODES.has(status)) reports[imt].placed += 1;
+            if (includedStatuses.has(status) && !touchedToday) reports[imt].needsNudge += 1;
+            if (touchedToday) reports[imt].touchedToday += 1;
+            if (status === '5') reports[imt].repost += 1;
+            if (status === '8') reports[imt].unsuccessful += 1;
 
-render();
-</script>
+            if (imt !== selectedAssignment) return;
+            if (!minerName) return skippedRows.push({ tab, rowIdx, minerName: displayMinerName, guestName, reason: 'Missing miner name' });
+            const key = minerKey(minerName);
+            if (!remarkRowsByMiner.has(key)) remarkRowsByMiner.set(key, []);
+            remarkRowsByMiner.get(key).push({ tab, rowIdx, remarksColumn: columnLetter(remarksIndex) });
+            if (remarks) {
+              const currentRemarks = remarksByMiner.get(key) || [];
+              if (!currentRemarks.includes(remarks)) remarksByMiner.set(key, [...currentRemarks, remarks]);
+            }
+            if (touchedToday) return skippedRows.push({ tab, rowIdx, minerName: displayMinerName, guestName, reason: `Already touched today (${todaySheetDate()})` });
+            const number = normalizeNum(row[10]);
+            if (!includedStatuses.has(status)) return skippedRows.push({ tab, rowIdx, minerName: displayMinerName, guestName, reason: `Excluded status ${status || 'blank'}` });
+            candidates.push({ key, minerName: displayMinerName, number, guestName, status, tab, rowIdx, remarks, remarksColumn: columnLetter(remarksIndex) });
+          });
+        }
+        candidates.sort((a, b) => monthSortValue(a.tab) - monthSortValue(b.tab) || a.rowIdx - b.rowIdx || a.guestName.localeCompare(b.guestName));
 
-<script src="https://apis.google.com/js/api.js" onload="initGapi()"></script>
-<script src="https://accounts.google.com/gsi/client" async defer></script>
-</body>
+        const numberByMiner = new Map();
+        candidates.forEach((row) => {
+          if (row.number && !numberByMiner.has(row.key)) numberByMiner.set(row.key, row.number);
+        });
+
+        const groups = new Map();
+        candidates.forEach((row) => {
+          const number = numberByMiner.get(row.key);
+          if (!number) return skippedRows.push({ tab: row.tab, rowIdx: row.rowIdx, minerName: row.minerName, guestName: row.guestName, reason: 'No valid phone number found for this miner in year-to-date tabs' });
+          if (!groups.has(row.key)) {
+            groups.set(row.key, {
+              id: row.key,
+              name: row.minerName,
+              number,
+              firstName: getMinerFirstName(row.minerName),
+              seekers: [],
+              rows: [],
+              remarkRows: remarkRowsByMiner.get(row.key) || [],
+              remarks: (remarksByMiner.get(row.key) || []).join('\n'),
+            });
+          }
+          const miner = groups.get(row.key);
+          miner.seekers.push({ fullName: row.guestName, status: row.status, tab: row.tab, rowIdx: row.rowIdx });
+          miner.rows.push({ tab: row.tab, rowIdx: row.rowIdx, number, remarksColumn: row.remarksColumn });
+        });
+        return {
+          miners: [...groups.values()].map((miner) => {
+              miner.seekers.sort((a, b) => monthSortValue(a.tab) - monthSortValue(b.tab) || a.rowIdx - b.rowIdx || a.fullName.localeCompare(b.fullName));
+              return { ...miner, message: makeMessage(miner) };
+            })
+            .sort((a, b) => b.seekers.length - a.seekers.length || a.name.localeCompare(b.name)),
+          skipped: skippedRows,
+          imtOptions: sortImts(assignments),
+          reportByImt: reports,
+          activeReport: reports[selectedAssignment] || freshReport(selectedAssignment),
+        };
+      }
+      async function fetchQueue() {
+        const metaResponse = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}?fields=sheets.properties.title`, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        const meta = await metaResponse.json();
+        if (!metaResponse.ok) throw new Error(meta.error?.message || 'Unable to inspect the Google Sheet tabs.');
+        const availableTabs = (meta.sheets || []).map((sheet) => sheet.properties?.title).filter(Boolean);
+        const allMonthlyTabs = availableTabs
+          .filter((tab) => isMonthlyTab(tab) && isCurrentYearToDateTab(tab))
+          .sort((a, b) => monthSortValue(a) - monthSortValue(b));
+        const monthlyTabs = normalizeMonthRange(allMonthlyTabs);
+        if (!monthlyTabs.length) throw new Error(`No monthly tabs found. Available tabs: ${availableTabs.join(', ') || 'none'}`);
+        const params = new URLSearchParams();
+        monthlyTabs.forEach((tab) => params.append('ranges', `${quoteSheetName(tab)}!A:Z`));
+        params.append('key', API_KEY);
+        const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values:batchGet?${params}`, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error?.message || 'Unable to read the Google Sheet.');
+        let model = buildModel(data.valueRanges || [], selectedImt);
+        if (model.imtOptions.length && !model.imtOptions.includes(selectedImt)) {
+          selectedImt = model.imtOptions[0];
+          localStorage.setItem('selectedImt', selectedImt);
+          model = buildModel(data.valueRanges || [], selectedImt);
+        }
+        return { ...model, tabs: monthlyTabs, monthTabs: allMonthlyTabs };
+      }
+      async function writeTouchedDates() {
+        const sentMiners = miners.filter((miner) => sent.has(miner.id));
+        const date = todaySheetDate();
+        const data = sentMiners.flatMap((miner) => miner.rows.map((row) => ({ range: `${quoteSheetName(row.tab)}!N${row.rowIdx}`, values: [[date]] })));
+        const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values:batchUpdate`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ valueInputOption: 'USER_ENTERED', data }),
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error?.message || 'Unable to update Column N.');
+        return result;
+      }
+      async function writeImtRemarks(miner, remarks) {
+        const targetRows = miner.remarkRows?.length ? miner.remarkRows : miner.rows;
+        const data = targetRows.map((row) => ({ range: `${quoteSheetName(row.tab)}!${row.remarksColumn || 'O'}${row.rowIdx}`, values: [[remarks]] }));
+        const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values:batchUpdate`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ valueInputOption: 'USER_ENTERED', data }),
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error?.message || 'Unable to update IMT Remarks.');
+        return result;
+      }
+      function render() {
+        const sentMiners = miners.filter((miner) => sent.has(miner.id));
+        const totalSeekers = miners.reduce((sum, miner) => sum + miner.seekers.length, 0);
+        const progress = miners.length ? Math.round(sentMiners.length / miners.length * 100) : 0;
+        const report = activeReport || freshReport(selectedImt);
+        const placementRate = report.total ? Math.round(report.placed / report.total * 100) : 0;
+        $('imtSelect').disabled = !accessToken || imtOptions.length === 0;
+        $('imtSelect').innerHTML = (imtOptions.length ? imtOptions : [selectedImt]).map((imt) => `<option value="${escapeHtml(imt)}"${imt === selectedImt ? ' selected' : ''}>${escapeHtml(imt)}</option>`).join('');
+        $('fromMonthSelect').disabled = !accessToken || monthTabs.length === 0;
+        $('toMonthSelect').disabled = !accessToken || monthTabs.length === 0;
+        $('statusScopeSelect').disabled = !accessToken;
+        $('statusScopeSelect').value = selectedStatusScope;
+        const monthOptions = (monthTabs.length ? monthTabs : [selectedFromMonth || '']).filter(Boolean)
+          .map((tab) => `<option value="${escapeHtml(tab)}">${escapeHtml(monthLabel(tab))}</option>`).join('');
+        $('fromMonthSelect').innerHTML = monthOptions || '<option>From</option>';
+        $('toMonthSelect').innerHTML = monthOptions || '<option>To</option>';
+        $('fromMonthSelect').value = selectedFromMonth || '';
+        $('toMonthSelect').value = selectedToMonth || '';
+        $('assignedMetric').textContent = report.total;
+        $('placedMetric').textContent = report.placed;
+        $('needsNudgeMetric').textContent = report.needsNudge;
+        $('touchedTodayMetric').textContent = report.touchedToday;
+        $('placementMetric').textContent = `${placementRate}%`;
+        $('placementNote').textContent = `${report.placed} placed/connected out of ${report.total} assigned seekers in ${selectedRangeLabel()}.`;
+        $('encouragement').textContent = accessToken
+          ? `${selectedImt} has ${report.needsNudge} seeker${report.needsNudge === 1 ? '' : 's'} in the selected status scope for ${selectedRangeLabel()}. ${placementRate}% are already placed or connected. Every follow-up helps move someone closer to a DGroup.`
+          : 'Sign in to see the IMT dashboard and nudge queue.';
+        $('minersMetric').textContent = miners.length;
+        $('seekersMetric').textContent = totalSeekers;
+        $('sentMetric').textContent = sentMiners.length;
+        $('remainingMetric').textContent = miners.length - sentMiners.length;
+        $('progressText').textContent = `${progress}%`;
+        $('progressBar').style.width = `${progress}%`;
+        $('updateBtn').disabled = !accessToken || sentMiners.length === 0;
+        $('signInBtn').hidden = Boolean(accessToken);
+        $('refreshBtn').hidden = !accessToken;
+        $('signInPanel').hidden = Boolean(accessToken);
+        document.querySelectorAll('.tab').forEach((btn) => btn.classList.toggle('active', btn.dataset.filter === filter));
+        const visible = miners.filter((miner) => filter === 'sent' ? sent.has(miner.id) : filter === 'remaining' ? !sent.has(miner.id) : true);
+        $('cards').innerHTML = visible.length ? visible.map(cardHtml).join('') : `<div class="card empty">No miners in this view.</div>`;
+        $('skippedPanel').hidden = skipped.length === 0;
+        $('skippedSummary').textContent = `Skipped / excluded ${selectedImt} rows (${skipped.length})`;
+        $('skippedGrid').innerHTML = skipped.map((row) => `
+          <div class="skipped-item">
+            <strong>${escapeHtml(row.minerName || 'Unknown miner')}</strong><br>
+            ${escapeHtml(row.guestName || 'Unknown guest')}<br>
+            ${escapeHtml(row.tab)} row ${row.rowIdx}: ${escapeHtml(row.reason)}
+          </div>
+        `).join('');
+      }
+      function cardHtml(miner) {
+        const counts = miner.seekers.reduce((acc, seeker) => (acc[seeker.status] = (acc[seeker.status] || 0) + 1, acc), {});
+        const isSent = sent.has(miner.id);
+        return `
+          <article class="card ${isSent ? 'sent' : ''} ${expanded.has(miner.id) ? 'open' : ''}" data-id="${miner.id}">
+            <button class="card-head" data-action="toggle" data-id="${miner.id}">
+              <div class="avatar">${initials(miner.name)}</div>
+              <div class="grow">
+                <div class="name-row"><div class="miner-name">${escapeHtml(miner.name)}</div>${isSent ? '<span class="pill">Sent ✓</span>' : ''}</div>
+                <div class="subline"><span>${escapeHtml(miner.number)}</span><span>/</span><span>${miner.seekers.length} seeker${miner.seekers.length === 1 ? '' : 's'}</span></div>
+                <div class="badges">
+                  <button class="copy-mini" data-action="copy-number" data-id="${miner.id}">${copiedNumber === miner.id ? '✓ Number copied!' : 'Copy number'}</button>
+                  ${Object.entries(counts).map(([code, count]) => badge(code, count)).join('')}
+                </div>
+              </div>
+              <div class="chev">⌄</div>
+            </button>
+            <div class="card-body">
+              <div>
+                <div class="section-title">Seekers</div>
+                ${miner.seekers.map((seeker) => `
+                  <div class="seeker">
+                    <div class="seeker-name">${escapeHtml(seeker.fullName)}</div>
+                    <div class="subline">${badge(seeker.status)}<span>${escapeHtml(seeker.tab)} row ${seeker.rowIdx}</span></div>
+                  </div>
+                `).join('')}
+              </div>
+              <div class="message-col">
+                <div class="section-title">Viber Message</div>
+                <textarea readonly>${escapeHtml(miner.message)}</textarea>
+                <div class="actions">
+                  <button class="btn primary" data-action="copy-message" data-id="${miner.id}">${copiedMessage === miner.id ? '✓ Message copied!' : 'Copy message'}</button>
+                  <button class="btn" data-action="copy-number" data-id="${miner.id}">${copiedNumber === miner.id ? '✓ Number copied!' : 'Copy number'}</button>
+                  <button class="btn ${isSent ? '' : 'green'}" data-action="toggle-sent" data-id="${miner.id}">${isSent ? '↩ Mark unsent' : 'Mark as sent'}</button>
+                </div>
+              </div>
+            </div>
+          </article>
+        `;
+      }
+      function waitForGoogle() {
+        return new Promise((resolve, reject) => {
+          const started = Date.now();
+          const check = () => {
+            if (window.google?.accounts?.oauth2) resolve(window.google);
+            else if (Date.now() - started > 10000) reject(new Error('Google sign-in script did not load.'));
+            else setTimeout(check, 100);
+          };
+          check();
+        });
+      }
+      async function signIn() {
+        const google = await waitForGoogle();
+        tokenClient ||= google.accounts.oauth2.initTokenClient({
+          client_id: CLIENT_ID,
+          scope: SCOPE,
+          ux_mode: 'popup',
+          callback: (response) => {
+            if (response.error) return showNotice('error', response.error_description || response.error);
+            accessToken = response.access_token;
+            sessionStorage.setItem('googleAccessToken', accessToken);
+            loadQueue();
+          },
+        });
+        tokenClient.requestAccessToken({ prompt: accessToken ? '' : 'consent' });
+      }
+      async function loadQueue() {
+        if (!accessToken) return render();
+        showNotice('', '');
+        $('cards').innerHTML = `<div class="card empty">Loading miners from Google Sheets...</div>`;
+        try {
+          const queue = await fetchQueue();
+          miners = queue.miners;
+          skipped = queue.skipped;
+          imtOptions = queue.imtOptions;
+          reportByImt = queue.reportByImt;
+          activeReport = queue.activeReport;
+          monthTabs = queue.monthTabs;
+          selectedMonthTabs = queue.tabs;
+          sent = new Set(JSON.parse(localStorage.getItem(sentStorageKey()) || '[]'));
+          expanded = new Set(miners.slice(0, 1).map((miner) => miner.id));
+          showNotice('success', `Loaded ${selectedImt}: ${miners.length} miners from ${selectedRangeLabel()} using ${selectedStatusLabel()}.`);
+        } catch (error) {
+          if (/Invalid Credentials|Login Required|authentication credentials/i.test(error.message)) {
+            sessionStorage.removeItem('googleAccessToken');
+            accessToken = '';
+          }
+          showNotice('error', error.message);
+        }
+        render();
+      }
+      document.addEventListener('click', async (event) => {
+        const target = event.target.closest('[data-action]');
+        if (!target) return;
+        event.preventDefault();
+        event.stopPropagation();
+        const miner = miners.find((item) => item.id === target.dataset.id);
+        if (target.dataset.action === 'toggle') {
+          expanded.has(target.dataset.id) ? expanded.delete(target.dataset.id) : expanded.add(target.dataset.id);
+          render();
+        } else if (target.dataset.action === 'copy-message' && miner) {
+          await navigator.clipboard.writeText(miner.message);
+          copiedMessage = miner.id;
+          render();
+          setTimeout(() => { if (copiedMessage === miner.id) copiedMessage = ''; render(); }, 2000);
+        } else if (target.dataset.action === 'copy-number' && miner) {
+          await navigator.clipboard.writeText(miner.number);
+          copiedNumber = miner.id;
+          render();
+          setTimeout(() => { if (copiedNumber === miner.id) copiedNumber = ''; render(); }, 2000);
+        } else if (target.dataset.action === 'toggle-sent' && miner) {
+          sent.has(miner.id) ? sent.delete(miner.id) : sent.add(miner.id);
+          localStorage.setItem(sentStorageKey(), JSON.stringify([...sent]));
+          render();
+        }
+      });
+      document.querySelectorAll('.tab').forEach((btn) => btn.addEventListener('click', () => { filter = btn.dataset.filter; render(); }));
+      $('imtSelect').addEventListener('change', () => {
+        selectedImt = $('imtSelect').value;
+        localStorage.setItem('selectedImt', selectedImt);
+        sent = new Set(JSON.parse(localStorage.getItem(sentStorageKey()) || '[]'));
+        if (accessToken) loadQueue();
+        else render();
+      });
+      $('fromMonthSelect').addEventListener('change', () => {
+        selectedFromMonth = $('fromMonthSelect').value;
+        localStorage.setItem('selectedFromMonth', selectedFromMonth);
+        if (accessToken) loadQueue();
+        else render();
+      });
+      $('toMonthSelect').addEventListener('change', () => {
+        selectedToMonth = $('toMonthSelect').value;
+        localStorage.setItem('selectedToMonth', selectedToMonth);
+        if (accessToken) loadQueue();
+        else render();
+      });
+      $('statusScopeSelect').addEventListener('change', () => {
+        selectedStatusScope = $('statusScopeSelect').value;
+        localStorage.setItem('selectedStatusScope', selectedStatusScope);
+        if (accessToken) loadQueue();
+        else render();
+      });
+      $('signInBtn').addEventListener('click', () => signIn().catch((error) => showNotice('error', error.message)));
+      $('refreshBtn').addEventListener('click', loadQueue);
+      $('updateBtn').addEventListener('click', async () => {
+        try {
+          $('updateBtn').disabled = true;
+          const result = await writeTouchedDates();
+          showNotice('success', `Updated Column N for ${result.totalUpdatedCells || 0} rows with ${todaySheetDate()}.`);
+          await loadQueue();
+        } catch (error) {
+          showNotice('error', error.message);
+          render();
+        }
+      });
+      render();
+      if (accessToken) loadQueue();
+    </script>
+  </body>
 </html>
