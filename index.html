@@ -98,7 +98,9 @@
       .seeker { border: 1px solid var(--line); border-radius: 7px; background: white; padding: 10px; margin-bottom: 8px; }
       .seeker-name { font-weight: 760; color: #14283f; }
       textarea { width: 100%; min-height: 260px; resize: vertical; border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px; font: 14px/1.55 inherit; color: #172033; background: white; }
+      textarea:focus { outline: 3px solid rgba(30, 107, 159, .14); border-color: var(--blue); }
       textarea.remarks-box { min-height: 110px; margin-top: 6px; }
+      .message-help { margin-top: 7px; color: var(--muted); font-size: 12px; line-height: 1.45; }
       .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
       details { margin-top: 18px; }
       summary { cursor: pointer; font-weight: 800; color: #334155; }
@@ -467,6 +469,24 @@
       function makeMessage(miner) {
         const names = miner.seekers.map((seeker) => `• ${seekerLabel(seeker)}`).join('\n');
         return `Hi po ${miner.firstName}, blessed day! 🌸\nFollow up po sana ng status ng mga following seekers kung nakapag join na po ng DGroup or nag response po sa message nyo:\n\nSeekers:\n${names}\n\nThank you po and God bless! 🙏✨`;
+      }
+      async function sendMinerToViber(miner) {
+        const message = String(miner.message || '').trim();
+        if (!message) {
+          showNotice('error', `Please add a message for ${miner.name} before opening Viber.`);
+          return;
+        }
+        try {
+          await navigator.clipboard.writeText(message);
+        } catch (_) {
+          showNotice('error', 'Unable to copy the message. Please allow clipboard access and try again.');
+          return;
+        }
+        showNotice('success', `Message copied. Opening ${miner.name} in Viber—press Ctrl+V, then send.`);
+        auditQueueAction('Miner nudge opened in Viber', miner).catch((error) => {
+          console.error('Viber action audit failed:', error);
+        });
+        window.location.href = `viber://chat?number=${encodeURIComponent(miner.number)}`;
       }
       function showNotice(type, text) {
         $('notice').innerHTML = text ? `<div class="notice ${type}">${escapeHtml(text)}</div>` : '';
@@ -1024,7 +1044,7 @@
                 <div class="name-row"><div class="miner-name">${escapeHtml(miner.name)}</div>${isConfirmation ? '<span class="pill">PC</span>' : `<span class="pill">Assigned to ${escapeHtml(miner.assignment)}</span>`}${isSent ? '<span class="pill">Sent ✓</span>' : ''}</div>
                 <div class="subline"><span>${escapeHtml(miner.number)}</span><span>/</span><span>${miner.seekers.length} ${isConfirmation ? 'guest' : 'seeker'}${miner.seekers.length === 1 ? '' : 's'}</span></div>
                 <div class="badges">
-                  <button class="copy-mini" data-action="copy-number" data-id="${miner.id}">${copiedNumber === miner.id ? '✓ Number copied!' : 'Copy number'}</button>
+                  ${isConfirmation ? `<button class="copy-mini" data-action="copy-number" data-id="${miner.id}">${copiedNumber === miner.id ? '✓ Number copied!' : 'Copy number'}</button>` : ''}
                   ${Object.entries(counts).map(([code, count]) => badge(code, count)).join('')}
                 </div>
               </div>
@@ -1042,10 +1062,15 @@
               </div>
               <div class="message-col">
                 <div class="section-title">Viber Message</div>
-                <textarea readonly>${escapeHtml(miner.message)}</textarea>
+                ${isConfirmation
+                  ? `<textarea readonly>${escapeHtml(miner.message)}</textarea>`
+                  : `<textarea data-message-id="${miner.id}" aria-label="Viber message for ${escapeHtml(miner.name)}">${escapeHtml(miner.message)}</textarea>
+                     <div class="message-help">Edit the draft as needed. Send to Viber copies it and opens ${escapeHtml(miner.name)}'s chat. Press Ctrl+V, then send.</div>`}
                 <div class="actions">
-                  <button class="btn primary" data-action="copy-message" data-id="${miner.id}">${copiedMessage === miner.id ? '✓ Message copied!' : 'Copy message'}</button>
-                  <button class="btn" data-action="copy-number" data-id="${miner.id}">${copiedNumber === miner.id ? '✓ Number copied!' : 'Copy number'}</button>
+                  ${isConfirmation
+                    ? `<button class="btn primary" data-action="copy-message" data-id="${miner.id}">${copiedMessage === miner.id ? '✓ Message copied!' : 'Copy message'}</button>
+                       <button class="btn" data-action="copy-number" data-id="${miner.id}">${copiedNumber === miner.id ? '✓ Number copied!' : 'Copy number'}</button>`
+                    : `<button class="btn primary" data-action="send-viber" data-id="${miner.id}">Send to Viber</button>`}
                   <button class="btn ${isSent ? '' : 'green'}" data-action="toggle-sent" data-id="${miner.id}">${isSent ? '↩ Mark unsent' : 'Mark as sent'}</button>
                 </div>
               </div>
@@ -1156,6 +1181,8 @@
             showNotice('error', `Number copied, but the audit entry failed: ${error.message}`);
           }
           setTimeout(() => { if (copiedNumber === miner.id) copiedNumber = ''; render(); }, 2000);
+        } else if (target.dataset.action === 'send-viber' && miner && currentMode === 'miner') {
+          await sendMinerToViber(miner);
         } else if (target.dataset.action === 'toggle-sent' && miner) {
           if (currentMode === 'miner' && miner.assignment !== cleanImt(selectedImt)) {
             showNotice('error', `This miner is assigned to ${miner.assignment || 'another IMT'}, not ${cleanImt(selectedImt)}. Refresh the queue before continuing.`);
@@ -1171,6 +1198,12 @@
             showNotice('error', `Queue state changed, but the audit entry failed: ${error.message}`);
           }
         }
+      });
+      document.addEventListener('input', (event) => {
+        const target = event.target.closest('[data-message-id]');
+        if (!target || currentMode !== 'miner') return;
+        const miner = miners.find((item) => item.id === target.dataset.messageId);
+        if (miner) miner.message = target.value;
       });
       document.querySelectorAll('.tab').forEach((btn) => btn.addEventListener('click', () => { filter = btn.dataset.filter; render(); }));
       document.querySelectorAll('.mode-btn').forEach((btn) => btn.addEventListener('click', () => {
@@ -1255,5 +1288,4 @@
     </script>
   </body>
 </html>
-
 
