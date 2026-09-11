@@ -96,6 +96,8 @@
       textarea { width: 100%; min-height: 260px; resize: vertical; border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px; font: 14px/1.55 inherit; color: #172033; background: white; }
       textarea:focus { outline: 3px solid rgba(30, 107, 159, .14); border-color: var(--blue); }
       textarea.remarks-box { min-height: 110px; margin-top: 6px; }
+      .message-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+      .message-heading .section-title { margin-bottom: 0; }
       .message-help { margin-top: 7px; color: var(--muted); font-size: 12px; line-height: 1.45; }
       .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
       details { margin-top: 18px; }
@@ -660,11 +662,13 @@
                 `).join('')}
               </div>
               <div class="message-col">
-                <div class="section-title">Viber Message</div>
-                <textarea data-action="edit-message" data-id="${miner.id}" aria-label="Viber message for ${escapeHtml(miner.name)}">${escapeHtml(miner.message)}</textarea>
+                <div class="message-heading">
+                  <div class="section-title">Viber Message</div>
+                  <button class="btn primary" data-action="open-viber" data-id="${miner.id}">Open in Viber</button>
+                </div>
+                <textarea data-message-id="${miner.id}" aria-label="Viber message for ${escapeHtml(miner.name)}">${escapeHtml(miner.message)}</textarea>
                 <div class="message-help">Edit the draft as needed. Viber will ask you to choose the recipient, then show the message ready to send.</div>
                 <div class="actions">
-                  <button class="btn primary" data-action="open-viber" data-id="${miner.id}">Open in Viber</button>
                   <button class="btn" data-action="copy-message" data-id="${miner.id}">${copiedMessage === miner.id ? '✓ Message copied!' : 'Copy message'}</button>
                   <button class="btn" data-action="copy-number" data-id="${miner.id}">${copiedNumber === miner.id ? '✓ Number copied!' : 'Copy number'}</button>
                   <button class="btn ${isSent ? '' : 'green'}" data-action="toggle-sent" data-id="${miner.id}">${isSent ? '↩ Mark unsent' : 'Mark as sent'}</button>
@@ -753,9 +757,9 @@
         }
       });
       document.addEventListener('input', (event) => {
-        const target = event.target.closest('[data-action="edit-message"]');
+        const target = event.target.closest('[data-message-id]');
         if (!target) return;
-        const miner = miners.find((item) => item.id === target.dataset.id);
+        const miner = miners.find((item) => item.id === target.dataset.messageId);
         if (miner) miner.message = target.value;
       });
       document.querySelectorAll('.tab').forEach((btn) => btn.addEventListener('click', () => { filter = btn.dataset.filter; render(); }));
