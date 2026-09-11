@@ -94,7 +94,9 @@
       .seeker { border: 1px solid var(--line); border-radius: 7px; background: white; padding: 10px; margin-bottom: 8px; }
       .seeker-name { font-weight: 760; color: #14283f; }
       textarea { width: 100%; min-height: 260px; resize: vertical; border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px; font: 14px/1.55 inherit; color: #172033; background: white; }
+      textarea:focus { outline: 3px solid rgba(30, 107, 159, .14); border-color: var(--blue); }
       textarea.remarks-box { min-height: 110px; margin-top: 6px; }
+      .message-help { margin-top: 7px; color: var(--muted); font-size: 12px; line-height: 1.45; }
       .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
       details { margin-top: 18px; }
       summary { cursor: pointer; font-weight: 800; color: #334155; }
@@ -391,6 +393,22 @@
         const names = miner.seekers.map((seeker) => `• ${seekerLabel(seeker)}`).join('\n');
         return `Hi po ${miner.firstName}, blessed day! 🌸\nFollow up po sana ng status ng mga following seekers kung nakapag join na po ng DGroup or nag response po sa message nyo:\n\nSeekers:\n${names}\n\nThank you po and God bless! 🙏✨`;
       }
+      async function openInViber(miner) {
+        const message = String(miner.message || '').trim();
+        if (!message) {
+          showNotice('error', `Please add a message for ${miner.name} before opening Viber.`);
+          return;
+        }
+
+        // Keep the complete draft on the clipboard as a fallback for Viber
+        // clients that limit the text passed through their share URL.
+        try {
+          await navigator.clipboard.writeText(message);
+          copiedMessage = miner.id;
+        } catch (_) {}
+
+        window.location.href = `viber://forward?text=${encodeURIComponent(message)}`;
+      }
       function showNotice(type, text) {
         $('notice').innerHTML = text ? `<div class="notice ${type}">${escapeHtml(text)}</div>` : '';
       }
@@ -643,9 +661,11 @@
               </div>
               <div class="message-col">
                 <div class="section-title">Viber Message</div>
-                <textarea readonly>${escapeHtml(miner.message)}</textarea>
+                <textarea data-action="edit-message" data-id="${miner.id}" aria-label="Viber message for ${escapeHtml(miner.name)}">${escapeHtml(miner.message)}</textarea>
+                <div class="message-help">Edit the draft as needed. Viber will ask you to choose the recipient, then show the message ready to send.</div>
                 <div class="actions">
-                  <button class="btn primary" data-action="copy-message" data-id="${miner.id}">${copiedMessage === miner.id ? '✓ Message copied!' : 'Copy message'}</button>
+                  <button class="btn primary" data-action="open-viber" data-id="${miner.id}">Open in Viber</button>
+                  <button class="btn" data-action="copy-message" data-id="${miner.id}">${copiedMessage === miner.id ? '✓ Message copied!' : 'Copy message'}</button>
                   <button class="btn" data-action="copy-number" data-id="${miner.id}">${copiedNumber === miner.id ? '✓ Number copied!' : 'Copy number'}</button>
                   <button class="btn ${isSent ? '' : 'green'}" data-action="toggle-sent" data-id="${miner.id}">${isSent ? '↩ Mark unsent' : 'Mark as sent'}</button>
                 </div>
@@ -719,6 +739,8 @@
           copiedMessage = miner.id;
           render();
           setTimeout(() => { if (copiedMessage === miner.id) copiedMessage = ''; render(); }, 2000);
+        } else if (target.dataset.action === 'open-viber' && miner) {
+          await openInViber(miner);
         } else if (target.dataset.action === 'copy-number' && miner) {
           await navigator.clipboard.writeText(miner.number);
           copiedNumber = miner.id;
@@ -729,6 +751,12 @@
           localStorage.setItem(sentStorageKey(), JSON.stringify([...sent]));
           render();
         }
+      });
+      document.addEventListener('input', (event) => {
+        const target = event.target.closest('[data-action="edit-message"]');
+        if (!target) return;
+        const miner = miners.find((item) => item.id === target.dataset.id);
+        if (miner) miner.message = target.value;
       });
       document.querySelectorAll('.tab').forEach((btn) => btn.addEventListener('click', () => { filter = btn.dataset.filter; render(); }));
       $('imtSelect').addEventListener('change', () => {
@@ -774,3 +802,4 @@
     </script>
   </body>
 </html>
+
