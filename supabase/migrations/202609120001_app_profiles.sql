@@ -13,5 +13,6 @@ create table if not exists public.app_profiles (
 
 alter table public.app_profiles enable row level security;
 revoke all on table public.app_profiles from anon, authenticated;
+grant select, insert, update, delete on table public.app_profiles to service_role;
 
 comment on table public.app_profiles is 'Server-managed CCF Nudge Tool roles. Browser clients have no direct access.';

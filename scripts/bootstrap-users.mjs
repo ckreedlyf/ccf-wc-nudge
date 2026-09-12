@@ -1,4 +1,5 @@
 import crypto from 'node:crypto';
+import fs from 'node:fs';
 import { createClient } from '@supabase/supabase-js';
 
 const required = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY'];
@@ -37,4 +38,6 @@ for (const profile of users) {
   credentials.push({ email: profile.email, temporaryPassword: password });
 }
 
-console.log(JSON.stringify(credentials, null, 2));
+const credentialsPath = new URL('../initial-credentials.private.json', import.meta.url);
+fs.writeFileSync(credentialsPath, `${JSON.stringify(credentials, null, 2)}\n`, { mode: 0o600 });
+console.log(`Created ${credentials.length} account(s). Temporary credentials were saved to initial-credentials.private.json.`);
