@@ -1,2 +1,6 @@
 dist
 .vercel
+node_modules
+.env.local
+.env.*.local
+*.private.json
