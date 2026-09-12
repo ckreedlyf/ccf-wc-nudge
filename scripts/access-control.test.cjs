@@ -5,6 +5,9 @@ const sheetId = process.env.CCF_SHEET_ID || '1TI_bslfoK96fhM4PJ45TlYlmMLTCEq2svV
 const base = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}`;
 const batch = (range) => `${base}/values:batchGet?${new URLSearchParams({ ranges: range })}`;
 
+assert.equal(_test.googleErrorMessage({ error: { message: 'The caller does not have permission' } }), 'The caller does not have permission');
+assert.equal(_test.googleErrorMessage({ error: 'Session expired' }), 'Session expired');
+
 assert.doesNotThrow(() => _test.assertReadAllowed({ role: 'imt' }, batch("'MAY26'!A:Z")));
 assert.throws(() => _test.assertReadAllowed({ role: 'imt' }, batch("'For confirmation'!A:AZ")), /monthly nudge tabs only/);
 assert.doesNotThrow(() => _test.assertReadAllowed({ role: 'confirmation' }, batch("'For confirmation'!A:AZ")));

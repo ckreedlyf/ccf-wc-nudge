@@ -35,6 +35,11 @@ function normalized(value) {
   return String(value || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
+function googleErrorMessage(result) {
+  if (typeof result?.error === 'string') return result.error;
+  return result?.error?.message || 'Google Sheets rejected the request.';
+}
+
 function rangesFrom(url) {
   const parsed = new URL(url);
   const batchRanges = parsed.searchParams.getAll('ranges');
@@ -157,6 +162,9 @@ async function handler(req, res) {
       body: req.body?.body ? JSON.stringify(req.body.body) : undefined,
     });
     let result = await response.json();
+    if (!response.ok) {
+      return json(res, response.status, { error: googleErrorMessage(result) });
+    }
     if (response.ok && targetMethod === 'GET' && profile.role === 'imt') result = blankOtherAssignments(result, profile.imt_assignment);
     json(res, response.status, result);
   } catch (error) {
@@ -165,4 +173,4 @@ async function handler(req, res) {
 }
 
 module.exports = handler;
-module.exports._test = { assertReadAllowed, blankOtherAssignments, cellFromRange, isMonthly, rangesFrom, tabFromRange };
+module.exports._test = { assertReadAllowed, blankOtherAssignments, cellFromRange, googleErrorMessage, isMonthly, rangesFrom, tabFromRange };

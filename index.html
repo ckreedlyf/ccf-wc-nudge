@@ -396,7 +396,8 @@
         });
         if (!response.ok) {
           const result = await response.json().catch(() => ({}));
-          return new Response(JSON.stringify({ error: { message: result.error || 'The Sheet request failed.' } }), {
+          const message = typeof result.error === 'string' ? result.error : result.error?.message;
+          return new Response(JSON.stringify({ error: { message: message || 'The Sheet request failed.' } }), {
             status: response.status,
             headers: { 'Content-Type': 'application/json' },
           });
