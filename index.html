@@ -179,7 +179,11 @@
       .seeker textarea { min-height: 64px; resize: vertical; }
       .seeker select:focus, .seeker input:focus, .seeker textarea:focus { outline: 3px solid rgba(30, 107, 159, .14); border-color: var(--blue); }
       .seeker-save-state { min-height: 18px; margin-top: 4px; color: var(--leaf); font-size: 12px; font-weight: 700; }
-      .seeker-sync { margin-top: 6px; }
+      .miner-sync-strip { display: none; align-items: center; justify-content: space-between; gap: 12px; padding: 11px 16px; border-top: 1px solid var(--line); background: #eef8ff; }
+      .open .miner-sync-strip { display: flex; }
+      .miner-sync-copy { color: #49627d; font-size: 12px; line-height: 1.4; }
+      .miner-sync-copy strong { display: block; color: var(--ink); font-size: 13px; }
+      .miner-sync-state { color: var(--leaf); font-size: 12px; font-weight: 700; }
       textarea { width: 100%; min-height: 260px; resize: vertical; border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px; font: 14px/1.55 inherit; color: #172033; background: white; }
       textarea:focus { outline: 3px solid rgba(30, 107, 159, .14); border-color: var(--blue); }
       textarea.remarks-box { min-height: 110px; margin-top: 6px; }
@@ -461,6 +465,7 @@
       let expanded = new Set();
       let copiedMessage = '';
       let copiedNumber = '';
+      let dirtySeekers = new Set();
       let filter = 'remaining';
 
       const $ = (id) => document.getElementById(id);
@@ -488,6 +493,7 @@
         expanded = new Set();
         copiedMessage = '';
         copiedNumber = '';
+        dirtySeekers = new Set();
         showNotice('', '');
       }
 
@@ -1027,6 +1033,7 @@
           miner.seekers.push({
             id: row.seekerId, rowKey, fullName: row.guestName, status: row.status, tab: row.tab, rowIdx: row.rowIdx,
             assignment: row.imt, lastTouch: row.lastTouch, remarks: row.remarks, statusText: row.statusText,
+            syncedStatus: row.status, syncedLastTouch: row.lastTouch, syncedRemarks: row.remarks,
             statusOptions: row.statusOptions,
             statusColumn: row.statusColumn, dltColumn: row.dltColumn, remarksColumn: row.remarksColumn,
           });
@@ -1195,40 +1202,73 @@
           state.style.color = isError ? '#991b1b' : 'var(--leaf)';
         }
       }
-      async function saveSeekerUpdate(seeker) {
-        if (currentMode !== 'miner') return;
-        if (currentUser?.role === 'imt' && cleanImt(seeker.assignment) !== cleanImt(currentUser.imtAssignment)) {
-          throw new Error(`This seeker is assigned to ${seeker.assignment}, not ${currentUser.imtAssignment}.`);
+      function minerDirtySeekers(miner) {
+        return miner.seekers.filter((seeker) => dirtySeekers.has(seeker.rowKey));
+      }
+      function updateMinerSyncUi(miner) {
+        const edited = minerDirtySeekers(miner).length;
+        const button = document.querySelector(`[data-action="sync-miner"][data-id="${CSS.escape(miner.id)}"]`);
+        const state = document.querySelector(`[data-miner-sync-state="${CSS.escape(miner.id)}"]`);
+        if (button) {
+          button.disabled = edited === 0;
+          button.textContent = edited ? `Sync all updates (${edited})` : 'All updates synced';
         }
-        if (!seeker.statusColumn || !seeker.remarksColumn || !seeker.dltColumn) throw new Error('This seeker row is missing one of the editable Sheet columns. Refresh and try again.');
-        setSeekerSaveState(seeker.rowKey, 'Saving...');
-        const data = [
-          { range: `${quoteSheetName(seeker.tab)}!${seeker.statusColumn}${seeker.rowIdx}`, values: [[sheetStatusValue(seeker)]] },
-          { range: `${quoteSheetName(seeker.tab)}!${seeker.remarksColumn}${seeker.rowIdx}`, values: [[seeker.remarks || '']] },
-          { range: `${quoteSheetName(seeker.tab)}!${seeker.dltColumn}${seeker.rowIdx}`, values: [[seeker.lastTouch || '']] },
-        ];
+        if (state) state.textContent = edited ? `${edited} seeker${edited === 1 ? '' : 's'} ready to sync` : '';
+      }
+      function markSeekerDirty(seeker) {
+        const changed = seeker.status !== seeker.syncedStatus
+          || seeker.lastTouch !== seeker.syncedLastTouch
+          || seeker.remarks !== seeker.syncedRemarks;
+        changed ? dirtySeekers.add(seeker.rowKey) : dirtySeekers.delete(seeker.rowKey);
+        setSeekerSaveState(seeker.rowKey, changed ? 'Changes ready to sync' : '');
+        const miner = miners.find((item) => item.seekers.some((candidate) => candidate.rowKey === seeker.rowKey));
+        if (miner) updateMinerSyncUi(miner);
+      }
+      async function saveMinerUpdates(miner) {
+        if (currentMode !== 'miner') return;
+        const editedSeekers = minerDirtySeekers(miner);
+        if (!editedSeekers.length) throw new Error(`No edited seekers for ${miner.name}.`);
+        for (const seeker of editedSeekers) {
+          if (currentUser?.role === 'imt' && cleanImt(seeker.assignment) !== cleanImt(currentUser.imtAssignment)) {
+            throw new Error(`This seeker is assigned to ${seeker.assignment}, not ${currentUser.imtAssignment}.`);
+          }
+          if (!seeker.statusColumn || !seeker.remarksColumn || !seeker.dltColumn) throw new Error(`${seekerLabel(seeker)} is missing one of the editable Sheet columns. Refresh and try again.`);
+          setSeekerSaveState(seeker.rowKey, 'Saving...');
+        }
+        const data = editedSeekers.flatMap((seeker) => {
+          const updates = [];
+          if (seeker.status !== seeker.syncedStatus) updates.push({ range: `${quoteSheetName(seeker.tab)}!${seeker.statusColumn}${seeker.rowIdx}`, values: [[sheetStatusValue(seeker)]] });
+          if (seeker.remarks !== seeker.syncedRemarks) updates.push({ range: `${quoteSheetName(seeker.tab)}!${seeker.remarksColumn}${seeker.rowIdx}`, values: [[seeker.remarks || '']] });
+          if (seeker.lastTouch !== seeker.syncedLastTouch) updates.push({ range: `${quoteSheetName(seeker.tab)}!${seeker.dltColumn}${seeker.rowIdx}`, values: [[seeker.lastTouch || '']] });
+          return updates;
+        });
         const response = await sheetFetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values:batchUpdate`, {
           method: 'POST',
           headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({ valueInputOption: 'USER_ENTERED', data }),
         });
         const result = await response.json();
-        if (!response.ok) throw new Error(result.error?.message || 'Unable to update this seeker.');
+        if (!response.ok) throw new Error(result.error?.message || `Unable to update ${miner.name}'s seekers.`);
+        editedSeekers.forEach((seeker) => {
+          seeker.syncedStatus = seeker.status;
+          seeker.syncedLastTouch = seeker.lastTouch;
+          seeker.syncedRemarks = seeker.remarks;
+          dirtySeekers.delete(seeker.rowKey);
+        });
+        let auditWarning = '';
         try {
           await appendAuditEntry({
-            action: 'Seeker details updated',
-            assignment: seeker.assignment,
-            targets: [seekerLabel(seeker)],
-            rows: 1,
-            tabs: [seeker.tab],
-            details: `Status: ${seeker.status}; DLT: ${seeker.lastTouch || '-'}; IMT Remarks updated on row ${seeker.rowIdx}`,
+            action: 'Miner seeker updates synced',
+            assignment: miner.assignment,
+            targets: [miner.name],
+            rows: editedSeekers.length,
+            tabs: editedSeekers.map((seeker) => seeker.tab),
+            details: `${editedSeekers.length} seeker row${editedSeekers.length === 1 ? '' : 's'} updated across ${data.length} changed cell${data.length === 1 ? '' : 's'}`,
           });
         } catch (error) {
-          setSeekerSaveState(seeker.rowKey, `Saved, but audit failed: ${error.message}`, true);
-          return result;
+          auditWarning = `Updates saved, but audit logging failed: ${error.message}`;
         }
-        setSeekerSaveState(seeker.rowKey, 'Saved to Sheet');
-        return result;
+        return { ...result, editedSeekers, auditWarning };
       }
       async function writeTouchedDates() {
         if (currentMode !== 'miner') throw new Error('Miner updates are only available in the Miner Nudge view.');
@@ -1441,6 +1481,7 @@
         }, {});
         const isSent = sent.has(miner.id);
         const isConfirmation = currentMode === 'confirmation';
+        const editedCount = isConfirmation ? 0 : minerDirtySeekers(miner).length;
         return `
           <article class="card ${isSent ? 'sent' : ''} ${expanded.has(miner.id) ? 'open' : ''}" data-id="${miner.id}">
             <button class="card-head" data-action="toggle" data-id="${miner.id}">
@@ -1455,6 +1496,10 @@
               </div>
               <div class="chev">⌄</div>
             </button>
+            ${isConfirmation ? '' : `<div class="miner-sync-strip">
+              <div class="miner-sync-copy"><strong>Seeker updates</strong><span data-miner-sync-state="${escapeHtml(miner.id)}">${editedCount ? `${editedCount} seeker${editedCount === 1 ? '' : 's'} ready to sync` : 'Edit status, DLT, or remarks below.'}</span></div>
+              <button class="btn primary" type="button" data-action="sync-miner" data-id="${escapeHtml(miner.id)}"${editedCount ? '' : ' disabled'}>${editedCount ? `Sync all updates (${editedCount})` : 'All updates synced'}</button>
+            </div>`}
             <div class="card-body">
               <div>
                 <div class="section-title">${isConfirmation ? 'Guests for Confirmation' : 'Seekers'}</div>
@@ -1482,7 +1527,6 @@
                          <label class="remarks-field">IMT Remarks
                            <textarea data-seeker-remarks data-seeker-key="${escapeHtml(seeker.rowKey)}" rows="2" aria-label="IMT Remarks for ${escapeHtml(seekerLabel(seeker))}">${escapeHtml(seeker.remarks || '')}</textarea>
                          </label>
-                         <button class="btn primary seeker-sync" type="button" data-action="sync-seeker" data-seeker-key="${escapeHtml(seeker.rowKey)}">Sync status</button>
                          <div class="seeker-save-state" data-seeker-state="${escapeHtml(seeker.rowKey)}"></div>
                        </div>`}
                 `).join('')}
@@ -1565,6 +1609,7 @@
         try {
           const queue = await fetchQueue();
           miners = queue.miners;
+          dirtySeekers = new Set();
           skipped = queue.skipped;
           auditEntries = queue.auditEntries || [];
           imtOptions = queue.imtOptions;
@@ -1622,16 +1667,19 @@
           } catch (error) { showNotice('error', error.message); }
           return;
         }
-        if (target.dataset.action === 'sync-seeker' && currentMode === 'miner') {
-          const seeker = findSeeker(target.dataset.seekerKey);
-          if (!seeker) return;
+        if (target.dataset.action === 'sync-miner' && currentMode === 'miner') {
+          const miner = miners.find((item) => item.id === target.dataset.id);
+          if (!miner) return;
           try {
-            await saveSeekerUpdate(seeker);
-            showNotice('success', `${seekerLabel(seeker)} status, DLT, and IMT Remarks synced to the Sheet.`);
+            target.disabled = true;
+            target.textContent = 'Syncing...';
+            const result = await saveMinerUpdates(miner);
+            const successText = `${result.editedSeekers.length} edited seeker${result.editedSeekers.length === 1 ? '' : 's'} for ${miner.name} synced to the Sheet.`;
+            showNotice(result.auditWarning ? 'error' : 'success', result.auditWarning ? `${successText} ${result.auditWarning}` : successText);
             render();
           } catch (error) {
-            setSeekerSaveState(seeker.rowKey, error.message, true);
             showNotice('error', error.message);
+            updateMinerSyncUi(miner);
           }
           return;
         }
@@ -1678,19 +1726,31 @@
         }
       });
       document.addEventListener('input', (event) => {
-        const target = event.target.closest('[data-message-id]');
-        if (!target || currentMode !== 'miner') return;
-        const miner = miners.find((item) => item.id === target.dataset.messageId);
-        if (miner) miner.message = target.value;
+        if (currentMode !== 'miner') return;
+        const messageTarget = event.target.closest('[data-message-id]');
+        if (messageTarget) {
+          const miner = miners.find((item) => item.id === messageTarget.dataset.messageId);
+          if (miner) miner.message = messageTarget.value;
+          return;
+        }
+        const remarksTarget = event.target.closest('[data-seeker-remarks]');
+        if (!remarksTarget) return;
+        const seeker = findSeeker(remarksTarget.dataset.seekerKey);
+        if (!seeker) return;
+        seeker.remarks = remarksTarget.value;
+        markSeekerDirty(seeker);
       });
-      document.addEventListener('change', async (event) => {
-        const target = event.target.closest('[data-seeker-status]');
+      document.addEventListener('change', (event) => {
+        const target = event.target.closest('[data-seeker-status], [data-seeker-dlt]');
         if (!target || currentMode !== 'miner') return;
         const seeker = findSeeker(target.dataset.seekerKey);
         if (!seeker) return;
-        seeker.status = target.value;
-        target.className = `status-select s${String(seeker.status).replace(/[^a-z0-9]/g, '')}`;
-        setSeekerSaveState(seeker.rowKey, 'Changes ready to sync');
+        if (target.matches('[data-seeker-status]')) {
+          seeker.status = target.value;
+          target.className = `status-select s${String(seeker.status).replace(/[^a-z0-9]/g, '')}`;
+        }
+        if (target.matches('[data-seeker-dlt]')) seeker.lastTouch = sheetDateValue(target.value);
+        markSeekerDirty(seeker);
       });
       document.addEventListener('blur', (event) => {
         const target = event.target.closest('[data-seeker-remarks], [data-seeker-dlt]');
@@ -1699,7 +1759,7 @@
         if (!seeker) return;
         if (target.matches('[data-seeker-remarks]')) seeker.remarks = target.value;
         if (target.matches('[data-seeker-dlt]')) seeker.lastTouch = sheetDateValue(target.value);
-        setSeekerSaveState(seeker.rowKey, 'Changes ready to sync');
+        markSeekerDirty(seeker);
       }, true);
       document.querySelectorAll('.tab').forEach((btn) => btn.addEventListener('click', () => { filter = btn.dataset.filter; render(); }));
       document.querySelectorAll('.mode-btn').forEach((btn) => btn.addEventListener('click', () => {
