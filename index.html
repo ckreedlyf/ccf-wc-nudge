@@ -96,7 +96,7 @@
       .section-title { font-size: 14px; font-weight: 800; color: #334155; margin-bottom: 8px; }
       .seeker { border: 1px solid var(--line); border-radius: 7px; background: white; padding: 10px; margin-bottom: 8px; }
       .seeker-name { font-weight: 760; color: #14283f; }
-      .seeker-edit-grid { display: grid; grid-template-columns: minmax(170px, 1fr) minmax(120px, .6fr); gap: 8px; margin-top: 9px; }
+      .seeker-edit-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(170px, .8fr) minmax(120px, .55fr); gap: 8px; align-items: end; }
       .compact-field, .remarks-field { display: grid; gap: 4px; color: #49627d; font-size: 11px; font-weight: 800; text-transform: uppercase; }
       .seeker select, .seeker input, .seeker textarea { width: 100%; min-height: 38px; border: 1px solid #cbd5e1; border-radius: 6px; padding: 7px 9px; background: white; color: var(--ink); font: inherit; font-size: 13px; font-weight: 650; }
       .seeker textarea { min-height: 64px; resize: vertical; }
@@ -1236,9 +1236,11 @@
                          <div class="subline">${badge(seeker.status)}<span>${escapeHtml(seeker.tab)} row ${seeker.rowIdx}</span></div>
                        </div>`
                     : `<div class="seeker" data-seeker-key="${escapeHtml(seeker.rowKey)}">
-                         <div class="seeker-name">${escapeHtml(seekerLabel(seeker))}</div>
-                         <div class="subline"><span>${escapeHtml(seeker.tab)} row ${seeker.rowIdx}</span></div>
                          <div class="seeker-edit-grid">
+                           <div>
+                             <div class="seeker-name">${escapeHtml(seekerLabel(seeker))}</div>
+                             <div class="subline"><span>${escapeHtml(seeker.tab)} row ${seeker.rowIdx}</span></div>
+                           </div>
                            <label class="compact-field">Status
                              <select data-seeker-status data-seeker-key="${escapeHtml(seeker.rowKey)}" aria-label="Placement status for ${escapeHtml(seekerLabel(seeker))}">
                                ${ALL_STATUS_CODES.map((code) => `<option value="${code}"${seeker.status === code ? ' selected' : ''}>${code} - ${STATUS_LABELS[code]}</option>`).join('')}
