@@ -96,9 +96,10 @@
       .section-title { font-size: 14px; font-weight: 800; color: #334155; margin-bottom: 8px; }
       .seeker { border: 1px solid var(--line); border-radius: 7px; background: white; padding: 10px; margin-bottom: 8px; }
       .seeker-name { font-weight: 760; color: #14283f; }
-      .seeker-edit-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(170px, .8fr) minmax(120px, .55fr); gap: 8px; align-items: end; }
+      .seeker-edit-grid { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(110px, .8fr) minmax(110px, .7fr); gap: 8px; align-items: end; min-width: 0; }
       .compact-field, .remarks-field { display: grid; gap: 4px; color: #49627d; font-size: 11px; font-weight: 800; text-transform: uppercase; }
-      .seeker select, .seeker input, .seeker textarea { width: 100%; min-height: 38px; border: 1px solid #cbd5e1; border-radius: 6px; padding: 7px 9px; background: white; color: var(--ink); font: inherit; font-size: 13px; font-weight: 650; }
+      .seeker select, .seeker input, .seeker textarea { width: 100%; min-width: 0; min-height: 38px; border: 1px solid #cbd5e1; border-radius: 6px; padding: 7px 9px; background: white; color: var(--ink); font: inherit; font-size: 13px; font-weight: 650; }
+      .seeker input[type="date"] { padding-left: 7px; padding-right: 4px; font-size: 12px; }
       .seeker .status-select.s1 { background: #e0f2fe; color: #075985; border-color: #bae6fd; }
       .seeker .status-select.s2 { background: #fef3c7; color: #78350f; border-color: #fde68a; }
       .seeker .status-select.s3a { background: #ede9fe; color: #5b21b6; border-color: #ddd6fe; }
@@ -110,9 +111,21 @@
       .seeker .status-select.s6c { background: #dbeafe; color: #1d4ed8; border-color: #bfdbfe; }
       .seeker .status-select.s7 { background: #ecfccb; color: #3f6212; border-color: #d9f99d; }
       .seeker .status-select.s8 { background: #e5e7eb; color: #374151; border-color: #d1d5db; }
+      .seeker .status-select option.s1 { background: #e0f2fe; color: #075985; }
+      .seeker .status-select option.s2 { background: #fef3c7; color: #78350f; }
+      .seeker .status-select option.s3a { background: #ede9fe; color: #5b21b6; }
+      .seeker .status-select option.s3b { background: #ffe4e6; color: #9f1239; }
+      .seeker .status-select option.s4 { background: #dcfce7; color: #166534; }
+      .seeker .status-select option.s5 { background: #f3e8ff; color: #6b21a8; }
+      .seeker .status-select option.s6a { background: #ccfbf1; color: #0f766e; }
+      .seeker .status-select option.s6b { background: #cffafe; color: #155e75; }
+      .seeker .status-select option.s6c { background: #dbeafe; color: #1d4ed8; }
+      .seeker .status-select option.s7 { background: #ecfccb; color: #3f6212; }
+      .seeker .status-select option.s8 { background: #e5e7eb; color: #374151; }
       .seeker textarea { min-height: 64px; resize: vertical; }
       .seeker select:focus, .seeker input:focus, .seeker textarea:focus { outline: 3px solid rgba(30, 107, 159, .14); border-color: var(--blue); }
       .seeker-save-state { min-height: 18px; margin-top: 4px; color: var(--leaf); font-size: 12px; font-weight: 700; }
+      .seeker-sync { margin-top: 6px; }
       textarea { width: 100%; min-height: 260px; resize: vertical; border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px; font: 14px/1.55 inherit; color: #172033; background: white; }
       textarea:focus { outline: 3px solid rgba(30, 107, 159, .14); border-color: var(--blue); }
       textarea.remarks-box { min-height: 110px; margin-top: 6px; }
@@ -585,7 +598,7 @@
           values.forEach((row, index) => {
             if (index <= headerIndex) return;
             const gender = String(row[genderIndex] ?? '').trim().toUpperCase();
-            if (!['F', 'M'].includes(gender)) return;
+            if (!['F', 'M', 'MF'].includes(gender)) return;
             if (nameIndex >= 0 && row[nameIndex]) map.set(`name:${minerKey(row[nameIndex])}`, gender);
             if (numberIndex >= 0) {
               const number = normalizeNum(row[numberIndex]);
@@ -596,7 +609,7 @@
         return map;
       }
       function minerHonorific(miner) {
-        return miner.gender === 'F' ? 'sis' : miner.gender === 'M' ? 'bro' : '';
+        return miner.gender === 'F' ? 'sis' : miner.gender === 'M' ? 'bro' : miner.gender === 'MF' ? 'bro and sis' : '';
       }
       function makeConfirmationMessage(pc) {
         if (pc.seekers.length === 1) {
@@ -803,6 +816,7 @@
         const assignments = new Set();
         const reports = {};
         const includedStatuses = selectedStatusCodes();
+        const statusOptions = {};
         for (const range of valueRanges) {
           const tab = parseRangeTab(range.range);
           const values = range.values || [];
@@ -811,7 +825,6 @@
           const statusIndex = findColumnIndex(headerRow, ['Placement Status', 'Status'], 12);
           const remarksIndex = findColumnIndex(headerRow, ['IMT Remarks', 'IMT Remark', 'Remarks'], 14);
           const dltIndex = findColumnIndex(headerRow, ['Date Last touch', 'Date Last Touched', 'Last Touch Date', 'Last Touch', 'Last Touched', 'DLT'], 13);
-          const statusOptions = {};
           values.slice(1).forEach((statusRow) => {
             const statusCode = extractStatus(statusRow[statusIndex]);
             const statusText = String(statusRow[statusIndex] ?? '').trim();
@@ -1313,7 +1326,7 @@
                            </div>
                            <label class="compact-field">Status
                              <select class="status-select s${String(seeker.status).replace(/[^a-z0-9]/g, '')}" data-seeker-status data-seeker-key="${escapeHtml(seeker.rowKey)}" aria-label="Placement status for ${escapeHtml(seekerLabel(seeker))}">
-                               ${ALL_STATUS_CODES.map((code) => `<option value="${code}"${seeker.status === code ? ' selected' : ''}>${code} - ${STATUS_LABELS[code]}</option>`).join('')}
+                               ${ALL_STATUS_CODES.map((code) => `<option class="s${String(code).replace(/[^a-z0-9]/g, '')}" value="${code}"${seeker.status === code ? ' selected' : ''}>${escapeHtml(seeker.statusOptions?.[code] || `${code} ${STATUS_LABELS[code] || code}`)}</option>`).join('')}
                              </select>
                            </label>
                            <label class="compact-field">DLT
@@ -1323,6 +1336,7 @@
                          <label class="remarks-field">IMT Remarks
                            <textarea data-seeker-remarks data-seeker-key="${escapeHtml(seeker.rowKey)}" rows="2" aria-label="IMT Remarks for ${escapeHtml(seekerLabel(seeker))}">${escapeHtml(seeker.remarks || '')}</textarea>
                          </label>
+                         <button class="btn primary seeker-sync" type="button" data-action="sync-seeker" data-seeker-key="${escapeHtml(seeker.rowKey)}">Sync status</button>
                          <div class="seeker-save-state" data-seeker-state="${escapeHtml(seeker.rowKey)}"></div>
                        </div>`}
                 `).join('')}
@@ -1462,6 +1476,19 @@
           } catch (error) { showNotice('error', error.message); }
           return;
         }
+        if (target.dataset.action === 'sync-seeker' && currentMode === 'miner') {
+          const seeker = findSeeker(target.dataset.seekerKey);
+          if (!seeker) return;
+          try {
+            await saveSeekerUpdate(seeker);
+            showNotice('success', `${seekerLabel(seeker)} status, DLT, and IMT Remarks synced to the Sheet.`);
+            render();
+          } catch (error) {
+            setSeekerSaveState(seeker.rowKey, error.message, true);
+            showNotice('error', error.message);
+          }
+          return;
+        }
         const miner = miners.find((item) => item.id === target.dataset.id);
         if (target.dataset.action === 'toggle') {
           expanded.has(target.dataset.id) ? expanded.delete(target.dataset.id) : expanded.add(target.dataset.id);
@@ -1516,28 +1543,17 @@
         const seeker = findSeeker(target.dataset.seekerKey);
         if (!seeker) return;
         seeker.status = target.value;
-        try {
-          await saveSeekerUpdate(seeker);
-          render();
-        } catch (error) {
-          setSeekerSaveState(seeker.rowKey, error.message, true);
-          showNotice('error', error.message);
-        }
+        target.className = `status-select s${String(seeker.status).replace(/[^a-z0-9]/g, '')}`;
+        setSeekerSaveState(seeker.rowKey, 'Changes ready to sync');
       });
-      document.addEventListener('blur', async (event) => {
+      document.addEventListener('blur', (event) => {
         const target = event.target.closest('[data-seeker-remarks], [data-seeker-dlt]');
         if (!target || currentMode !== 'miner') return;
         const seeker = findSeeker(target.dataset.seekerKey);
         if (!seeker) return;
         if (target.matches('[data-seeker-remarks]')) seeker.remarks = target.value;
         if (target.matches('[data-seeker-dlt]')) seeker.lastTouch = sheetDateValue(target.value);
-        try {
-          await saveSeekerUpdate(seeker);
-          render();
-        } catch (error) {
-          setSeekerSaveState(seeker.rowKey, error.message, true);
-          showNotice('error', error.message);
-        }
+        setSeekerSaveState(seeker.rowKey, 'Changes ready to sync');
       }, true);
       document.querySelectorAll('.tab').forEach((btn) => btn.addEventListener('click', () => { filter = btn.dataset.filter; render(); }));
       document.querySelectorAll('.mode-btn').forEach((btn) => btn.addEventListener('click', () => {
