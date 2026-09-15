@@ -9,7 +9,8 @@ assert.equal(_test.googleErrorMessage({ error: { message: 'The caller does not h
 assert.equal(_test.googleErrorMessage({ error: 'Session expired' }), 'Session expired');
 
 assert.doesNotThrow(() => _test.assertReadAllowed({ role: 'imt' }, batch("'MAY26'!A:Z")));
-assert.throws(() => _test.assertReadAllowed({ role: 'imt' }, batch("'For confirmation'!A:AZ")), /monthly nudge tabs only/);
+assert.doesNotThrow(() => _test.assertReadAllowed({ role: 'imt' }, batch("'PC Contact Details'!A:Z")));
+assert.throws(() => _test.assertReadAllowed({ role: 'imt' }, batch("'For confirmation'!A:AZ")), /monthly nudge tabs and PC Contact Details only/);
 assert.doesNotThrow(() => _test.assertReadAllowed({ role: 'confirmation' }, batch("'For confirmation'!A:AZ")));
 assert.throws(() => _test.assertReadAllowed({ role: 'confirmation' }, batch("'MAY26'!A:Z")), /cannot access/);
 assert.doesNotThrow(() => _test.assertReadAllowed({ role: 'imt' }, `${base}/values/${encodeURIComponent("'Audit Log'!A1:H1")}`));

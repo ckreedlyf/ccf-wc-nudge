@@ -6,6 +6,7 @@ const SHEET_ID = process.env.CCF_SHEET_ID || '1TI_bslfoK96fhM4PJ45TlYlmMLTCEq2sv
 const BASE = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}`;
 const CONFIRMATION_TAB = 'For confirmation';
 const AUDIT_TAB = 'Audit Log';
+const PC_CONTACT_DETAILS_TAB = 'pccontactdetails';
 const IMT_STATUS_CODES = new Set(['1', '2', '3a', '3b', '4', '5', '6a', '6b', '6c', '7', '8']);
 
 function tabFromRange(range) {
@@ -59,7 +60,7 @@ function assertReadAllowed(profile, targetUrl) {
     const tab = tabFromRange(range);
     if (tab === AUDIT_TAB && cellFromRange(range) === 'A1:H1') continue;
     if (profile.role === 'confirmation' && tab !== CONFIRMATION_TAB) throw Object.assign(new Error('For Confirmation users cannot access this Sheet tab.'), { status: 403 });
-    if (profile.role === 'imt' && !isMonthly(tab)) throw Object.assign(new Error('IMT users can access monthly nudge tabs only.'), { status: 403 });
+    if (profile.role === 'imt' && !isMonthly(tab) && normalized(tab) !== PC_CONTACT_DETAILS_TAB) throw Object.assign(new Error('IMT users can access monthly nudge tabs and PC Contact Details only.'), { status: 403 });
   }
 }
 

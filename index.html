@@ -99,6 +99,17 @@
       .seeker-edit-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(170px, .8fr) minmax(120px, .55fr); gap: 8px; align-items: end; }
       .compact-field, .remarks-field { display: grid; gap: 4px; color: #49627d; font-size: 11px; font-weight: 800; text-transform: uppercase; }
       .seeker select, .seeker input, .seeker textarea { width: 100%; min-height: 38px; border: 1px solid #cbd5e1; border-radius: 6px; padding: 7px 9px; background: white; color: var(--ink); font: inherit; font-size: 13px; font-weight: 650; }
+      .seeker .status-select.s1 { background: #e0f2fe; color: #075985; border-color: #bae6fd; }
+      .seeker .status-select.s2 { background: #fef3c7; color: #78350f; border-color: #fde68a; }
+      .seeker .status-select.s3a { background: #ede9fe; color: #5b21b6; border-color: #ddd6fe; }
+      .seeker .status-select.s3b { background: #ffe4e6; color: #9f1239; border-color: #fecdd3; }
+      .seeker .status-select.s4 { background: #dcfce7; color: #166534; border-color: #bbf7d0; }
+      .seeker .status-select.s5 { background: #f3e8ff; color: #6b21a8; border-color: #e9d5ff; }
+      .seeker .status-select.s6a { background: #ccfbf1; color: #0f766e; border-color: #99f6e4; }
+      .seeker .status-select.s6b { background: #cffafe; color: #155e75; border-color: #a5f3fc; }
+      .seeker .status-select.s6c { background: #dbeafe; color: #1d4ed8; border-color: #bfdbfe; }
+      .seeker .status-select.s7 { background: #ecfccb; color: #3f6212; border-color: #d9f99d; }
+      .seeker .status-select.s8 { background: #e5e7eb; color: #374151; border-color: #d1d5db; }
       .seeker textarea { min-height: 64px; resize: vertical; }
       .seeker select:focus, .seeker input:focus, .seeker textarea:focus { outline: 3px solid rgba(30, 107, 159, .14); border-color: var(--blue); }
       .seeker-save-state { min-height: 18px; margin-top: 4px; color: var(--leaf); font-size: 12px; font-weight: 700; }
@@ -544,12 +555,48 @@
         const year = match[3] ? Number(match[3].length === 2 ? `20${match[3]}` : match[3]) : new Date().getFullYear();
         return `${Number(match[1])}/${Number(match[2])}/${year}`;
       }
+      function dateInputValue(value) {
+        const normalized = normalizeDateCell(value);
+        const match = normalized.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+        return match ? `${match[3]}-${String(match[1]).padStart(2, '0')}-${String(match[2]).padStart(2, '0')}` : '';
+      }
+      function sheetDateValue(value) {
+        const text = String(value ?? '').trim();
+        const match = text.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+        return match ? `${Number(match[2])}/${Number(match[3])}/${match[1]}` : normalizeDateCell(text);
+      }
       function badge(code, count = '') {
         const cls = `s${String(code).replace(/[^a-z0-9]/g, '')}`;
         return `<span class="badge ${cls}">${STATUS_LABELS[code] || code}${count === '' ? '' : ` · ${count}`}</span>`;
       }
       function seekerLabel(seeker) {
         return seeker.id ? `${seeker.id} - ${seeker.fullName}` : seeker.fullName;
+      }
+      function buildGenderMap(valueRanges) {
+        const map = new Map();
+        for (const range of valueRanges || []) {
+          const values = range.values || [];
+          const headerIndex = findBestHeaderRow(values, ['Gender'], ['Miner Name', 'Miner', 'Name', 'Mobile Number', 'Phone']);
+          const header = values[headerIndex] || [];
+          const genderIndex = findColumnIndex(header, ['Gender', 'Sex'], -1);
+          const nameIndex = findColumnIndex(header, ['Miner Name', 'Miner', 'Name', 'PC Name', 'Contact Name'], -1);
+          const numberIndex = findColumnIndex(header, ['Mobile Number', 'Phone Number', 'Phone', 'Contact Number', 'Viber Number'], -1);
+          if (genderIndex < 0) continue;
+          values.forEach((row, index) => {
+            if (index <= headerIndex) return;
+            const gender = String(row[genderIndex] ?? '').trim().toUpperCase();
+            if (!['F', 'M'].includes(gender)) return;
+            if (nameIndex >= 0 && row[nameIndex]) map.set(`name:${minerKey(row[nameIndex])}`, gender);
+            if (numberIndex >= 0) {
+              const number = normalizeNum(row[numberIndex]);
+              if (number) map.set(`number:${number}`, gender);
+            }
+          });
+        }
+        return map;
+      }
+      function minerHonorific(miner) {
+        return miner.gender === 'F' ? 'sis' : miner.gender === 'M' ? 'bro' : '';
       }
       function makeConfirmationMessage(pc) {
         if (pc.seekers.length === 1) {
@@ -560,7 +607,8 @@
       }
       function makeMessage(miner) {
         const names = miner.seekers.map((seeker) => `• ${seekerLabel(seeker)}`).join('\n');
-        return `Hi po ${miner.firstName}, blessed day! 🌸\nFollow up po sana ng status ng mga following seekers kung nakapag join na po ng DGroup or nag response po sa message nyo:\n\nSeekers:\n${names}\n\nThank you po and God bless! 🙏✨`;
+        const honorific = minerHonorific(miner);
+        return `Hi po ${honorific ? `${honorific} ` : ''}${miner.firstName}, blessed day! 🌸\nFollow up po sana ng status ng mga following seekers kung nakapag join na po ng DGroup or nag response po sa message nyo:\n\nSeekers:\n${names}\n\nThank you po and God bless! 🙏✨`;
       }
       async function sendMinerToViber(miner) {
         const message = String(miner.message || '').trim();
@@ -749,7 +797,7 @@
         if (Number.isNaN(date.getTime())) return value || '-';
         return new Intl.DateTimeFormat('en-PH', { dateStyle: 'medium', timeStyle: 'short' }).format(date);
       }
-      function buildModel(valueRanges, selectedAssignment) {
+      function buildModel(valueRanges, selectedAssignment, genderByMiner = new Map()) {
         const candidates = [];
         const skippedRows = [];
         const assignments = new Set();
@@ -763,6 +811,12 @@
           const statusIndex = findColumnIndex(headerRow, ['Placement Status', 'Status'], 12);
           const remarksIndex = findColumnIndex(headerRow, ['IMT Remarks', 'IMT Remark', 'Remarks'], 14);
           const dltIndex = findColumnIndex(headerRow, ['Date Last touch', 'Date Last Touched', 'Last Touch Date', 'Last Touch', 'Last Touched', 'DLT'], 13);
+          const statusOptions = {};
+          values.slice(1).forEach((statusRow) => {
+            const statusCode = extractStatus(statusRow[statusIndex]);
+            const statusText = String(statusRow[statusIndex] ?? '').trim();
+            if (statusCode && statusText && !statusOptions[statusCode]) statusOptions[statusCode] = statusText;
+          });
           values.forEach((row, index) => {
             const rowIdx = index + 1;
             const imt = cleanImt(row[0]);
@@ -777,6 +831,7 @@
             const guestName = resolveGuestName(row[3], row[4]) || 'Unnamed guest';
             const displayMinerName = minerName ? titleCase(minerName) : 'Missing miner';
             const status = extractStatus(row[statusIndex]);
+            const statusText = String(row[statusIndex] ?? '').trim();
             const lastTouch = normalizeDateCell(row[dltIndex]);
             const touchedToday = lastTouch === todaySheetDate();
             const remarks = String(row[remarksIndex] ?? '').trim();
@@ -793,9 +848,10 @@
             if (touchedToday) return skippedRows.push({ tab, rowIdx, minerName: displayMinerName, guestName, reason: `Already touched today (${todaySheetDate()})` });
             const number = normalizeNum(row[10]);
             if (!includedStatuses.has(status)) return skippedRows.push({ tab, rowIdx, minerName: displayMinerName, guestName, reason: `Excluded status ${status || 'blank'}` });
+            const gender = genderByMiner.get(`name:${minerKey(minerName)}`) || (number ? genderByMiner.get(`number:${number}`) : '') || '';
             candidates.push({
               key, imt, minerName: displayMinerName, number, seekerId, guestName, status, tab, rowIdx,
-              lastTouch, remarks,
+              statusText, statusOptions, gender, lastTouch, remarks,
               statusColumn: columnLetter(statusIndex),
               dltColumn: columnLetter(dltIndex),
               remarksColumn: columnLetter(remarksIndex),
@@ -820,6 +876,7 @@
               name: row.minerName,
               number,
               firstName: getMinerFirstName(row.minerName),
+              gender: row.gender,
               seekers: [],
               rows: [],
             });
@@ -828,7 +885,8 @@
           const rowKey = `${row.tab}:${row.rowIdx}`;
           miner.seekers.push({
             id: row.seekerId, rowKey, fullName: row.guestName, status: row.status, tab: row.tab, rowIdx: row.rowIdx,
-            assignment: row.imt, lastTouch: row.lastTouch, remarks: row.remarks,
+            assignment: row.imt, lastTouch: row.lastTouch, remarks: row.remarks, statusText: row.statusText,
+            statusOptions: row.statusOptions,
             statusColumn: row.statusColumn, dltColumn: row.dltColumn, remarksColumn: row.remarksColumn,
           });
           miner.rows.push({ tab: row.tab, rowIdx: row.rowIdx, assignment: row.imt, number });
@@ -959,11 +1017,23 @@
         });
         const data = await response.json();
         if (!response.ok) throw new Error(data.error?.message || 'Unable to read the Google Sheet.');
-        let model = buildModel(data.valueRanges || [], selectedImt);
+        let genderByMiner = new Map();
+        const contactTab = availableTabs.find((tab) => normalizeHeader(tab) === 'pccontactdetails');
+        if (contactTab) {
+          const contactParams = new URLSearchParams();
+          contactParams.append('ranges', `${quoteSheetName(contactTab)}!A:Z`);
+          const contactResponse = await sheetFetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values:batchGet?${contactParams}`, {
+            headers: { Authorization: `Bearer ${accessToken}` },
+          });
+          const contactData = await contactResponse.json();
+          if (!contactResponse.ok) throw new Error(contactData.error?.message || 'Unable to read the PC Contact Details tab.');
+          genderByMiner = buildGenderMap(contactData.valueRanges || []);
+        }
+        let model = buildModel(data.valueRanges || [], selectedImt, genderByMiner);
         if (model.imtOptions.length && !model.imtOptions.includes(selectedImt)) {
           selectedImt = model.imtOptions[0];
           localStorage.setItem('selectedImt', selectedImt);
-          model = buildModel(data.valueRanges || [], selectedImt);
+          model = buildModel(data.valueRanges || [], selectedImt, genderByMiner);
         }
         return { ...model, tabs: monthlyTabs, monthTabs: allMonthlyTabs };
       }
@@ -974,8 +1044,8 @@
         }
         return null;
       }
-      function sheetStatusValue(code) {
-        return `${code} ${STATUS_LABELS[code] || code}`;
+      function sheetStatusValue(seeker) {
+        return seeker.statusOptions?.[seeker.status] || `${seeker.status} ${STATUS_LABELS[seeker.status] || seeker.status}`;
       }
       function setSeekerSaveState(rowKey, message, isError = false) {
         const state = document.querySelector(`[data-seeker-state="${CSS.escape(rowKey)}"]`);
@@ -992,7 +1062,7 @@
         if (!seeker.statusColumn || !seeker.remarksColumn || !seeker.dltColumn) throw new Error('This seeker row is missing one of the editable Sheet columns. Refresh and try again.');
         setSeekerSaveState(seeker.rowKey, 'Saving...');
         const data = [
-          { range: `${quoteSheetName(seeker.tab)}!${seeker.statusColumn}${seeker.rowIdx}`, values: [[sheetStatusValue(seeker.status)]] },
+          { range: `${quoteSheetName(seeker.tab)}!${seeker.statusColumn}${seeker.rowIdx}`, values: [[sheetStatusValue(seeker)]] },
           { range: `${quoteSheetName(seeker.tab)}!${seeker.remarksColumn}${seeker.rowIdx}`, values: [[seeker.remarks || '']] },
           { range: `${quoteSheetName(seeker.tab)}!${seeker.dltColumn}${seeker.rowIdx}`, values: [[seeker.lastTouch || '']] },
         ];
@@ -1242,12 +1312,12 @@
                              <div class="subline"><span>${escapeHtml(seeker.tab)} row ${seeker.rowIdx}</span></div>
                            </div>
                            <label class="compact-field">Status
-                             <select data-seeker-status data-seeker-key="${escapeHtml(seeker.rowKey)}" aria-label="Placement status for ${escapeHtml(seekerLabel(seeker))}">
+                             <select class="status-select s${String(seeker.status).replace(/[^a-z0-9]/g, '')}" data-seeker-status data-seeker-key="${escapeHtml(seeker.rowKey)}" aria-label="Placement status for ${escapeHtml(seekerLabel(seeker))}">
                                ${ALL_STATUS_CODES.map((code) => `<option value="${code}"${seeker.status === code ? ' selected' : ''}>${code} - ${STATUS_LABELS[code]}</option>`).join('')}
                              </select>
                            </label>
                            <label class="compact-field">DLT
-                             <input type="text" data-seeker-dlt data-seeker-key="${escapeHtml(seeker.rowKey)}" value="${escapeHtml(seeker.lastTouch || '')}" placeholder="M/D/YYYY" aria-label="Date last touch for ${escapeHtml(seekerLabel(seeker))}">
+                             <input type="date" data-seeker-dlt data-seeker-key="${escapeHtml(seeker.rowKey)}" value="${escapeHtml(dateInputValue(seeker.lastTouch))}" aria-label="Date last touch for ${escapeHtml(seekerLabel(seeker))}">
                            </label>
                          </div>
                          <label class="remarks-field">IMT Remarks
@@ -1460,7 +1530,7 @@
         const seeker = findSeeker(target.dataset.seekerKey);
         if (!seeker) return;
         if (target.matches('[data-seeker-remarks]')) seeker.remarks = target.value;
-        if (target.matches('[data-seeker-dlt]')) seeker.lastTouch = target.value.trim();
+        if (target.matches('[data-seeker-dlt]')) seeker.lastTouch = sheetDateValue(target.value);
         try {
           await saveSeekerUpdate(seeker);
           render();
