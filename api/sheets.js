@@ -6,6 +6,7 @@ const SHEET_ID = process.env.CCF_SHEET_ID || '1TI_bslfoK96fhM4PJ45TlYlmMLTCEq2sv
 const BASE = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}`;
 const CONFIRMATION_TAB = 'For confirmation';
 const AUDIT_TAB = 'Audit Log';
+const IMT_STATUS_CODES = new Set(['1', '2', '3a', '3b', '4', '5', '6a', '6b', '6c', '7', '8']);
 
 function tabFromRange(range) {
   const raw = String(range || '').split('!')[0].trim();
@@ -106,12 +107,41 @@ async function assertWriteAllowed(profile, body) {
     return;
   }
 
+  const headerByTab = new Map();
   for (const entry of data) {
     const tab = tabFromRange(entry.range);
     const cell = cellFromRange(entry.range);
-    const match = cell.match(/^N(\d+)$/);
-    if (!isMonthly(tab) || !match) throw Object.assign(new Error('IMT users may update only Date Last Touched in monthly tabs.'), { status: 403 });
-    const verifyRange = `${tab.includes(' ') ? `'${tab.replace(/'/g, "''")}'` : tab}!A${match[1]}`;
+    const match = cell.match(/^([A-Z]+)(\d+)$/);
+    if (!isMonthly(tab) || !match) throw Object.assign(new Error('IMT users may update only one seeker cell at a time in monthly tabs.'), { status: 403 });
+    if (!headerByTab.has(tab)) {
+      const headerRange = `${tab.includes(' ') ? `'${tab.replace(/'/g, "''")}'` : tab}!A1:AZ3`;
+      const headerResponse = await googleFetch(`${BASE}/values/${encodeURIComponent(headerRange)}`);
+      const headerResult = await headerResponse.json();
+      if (!headerResponse.ok) throw new Error(headerResult.error?.message || 'Unable to verify monthly tab columns.');
+      let header = headerResult.values?.[0] || [];
+      for (const row of headerResult.values || []) {
+        const keys = row.map(normalized);
+        if (keys.some((key) => ['placementstatus', 'status'].includes(key))) { header = row; break; }
+      }
+      const columns = { status: new Set(), remarks: new Set(), dlt: new Set() };
+      header.forEach((value, index) => {
+        const key = normalized(value);
+        if (['placementstatus', 'status'].includes(key)) columns.status.add(columnLetters(index));
+        if (['imtremarks', 'imtremark'].includes(key)) columns.remarks.add(columnLetters(index));
+        if (['datelasttouch', 'datelasttouched', 'lasttouchdate', 'lasttouch', 'lasttouched', 'dlt'].includes(key)) columns.dlt.add(columnLetters(index));
+      });
+      if (!columns.remarks.size) columns.remarks.add('O');
+      if (!columns.dlt.size) columns.dlt.add('N');
+      headerByTab.set(tab, columns);
+    }
+    const columns = headerByTab.get(tab);
+    const isAllowedColumn = columns.status.has(match[1]) || columns.remarks.has(match[1]) || columns.dlt.has(match[1]);
+    if (!isAllowedColumn) throw Object.assign(new Error('IMT users may update only Placement Status, IMT Remarks, or Date Last Touch for a seeker.'), { status: 403 });
+    if (columns.status.has(match[1])) {
+      const code = String(entry.values?.[0]?.[0] || '').trim().split(/\s+/)[0].toLowerCase();
+      if (!IMT_STATUS_CODES.has(code)) throw Object.assign(new Error('Placement Status must use a valid status code from 1 to 8.'), { status: 400 });
+    }
+    const verifyRange = `${tab.includes(' ') ? `'${tab.replace(/'/g, "''")}'` : tab}!A${match[2]}`;
     const verifyUrl = `${BASE}/values/${encodeURIComponent(verifyRange)}`;
     const response = await googleFetch(verifyUrl);
     const result = await response.json();

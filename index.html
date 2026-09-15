@@ -96,6 +96,12 @@
       .section-title { font-size: 14px; font-weight: 800; color: #334155; margin-bottom: 8px; }
       .seeker { border: 1px solid var(--line); border-radius: 7px; background: white; padding: 10px; margin-bottom: 8px; }
       .seeker-name { font-weight: 760; color: #14283f; }
+      .seeker-edit-grid { display: grid; grid-template-columns: minmax(170px, 1fr) minmax(120px, .6fr); gap: 8px; margin-top: 9px; }
+      .compact-field, .remarks-field { display: grid; gap: 4px; color: #49627d; font-size: 11px; font-weight: 800; text-transform: uppercase; }
+      .seeker select, .seeker input, .seeker textarea { width: 100%; min-height: 38px; border: 1px solid #cbd5e1; border-radius: 6px; padding: 7px 9px; background: white; color: var(--ink); font: inherit; font-size: 13px; font-weight: 650; }
+      .seeker textarea { min-height: 64px; resize: vertical; }
+      .seeker select:focus, .seeker input:focus, .seeker textarea:focus { outline: 3px solid rgba(30, 107, 159, .14); border-color: var(--blue); }
+      .seeker-save-state { min-height: 18px; margin-top: 4px; color: var(--leaf); font-size: 12px; font-weight: 700; }
       textarea { width: 100%; min-height: 260px; resize: vertical; border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px; font: 14px/1.55 inherit; color: #172033; background: white; }
       textarea:focus { outline: 3px solid rgba(30, 107, 159, .14); border-color: var(--blue); }
       textarea.remarks-box { min-height: 110px; margin-top: 6px; }
@@ -188,6 +194,7 @@
             <select id="statusScopeSelect" disabled>
               <option value="all">All follow-up except 6a and 8</option>
               <option value="active">Active only: 1-4</option>
+              <option value="all-statuses">All statuses: 1-8</option>
             </select>
           </div>
           <div class="report-line" id="encouragement">
@@ -309,6 +316,7 @@
       const SHEET_ID = '1TI_bslfoK96fhM4PJ45TlYlmMLTCEq2svVgqXFBdfWY';
       const ACTIVE_NUDGE_CODES = ['1', '2', '3a', '3b', '4'];
       const ALL_FOLLOW_UP_CODES = ['1', '2', '3a', '3b', '4', '5', '6b', '6c', '7'];
+      const ALL_STATUS_CODES = ['1', '2', '3a', '3b', '4', '5', '6a', '6b', '6c', '7', '8'];
       const PLACED_CODES = new Set(['6a', '6b', '6c', '7']);
       const IMT_PRIORITY = ['MR', 'G', 'JG', 'JP', 'JT'];
       const STATUS_LABELS = {
@@ -596,10 +604,14 @@
         return { code, total: 0, placed: 0, needsNudge: 0, touchedToday: 0, repost: 0, unsuccessful: 0 };
       }
       function selectedStatusCodes() {
-        return selectedStatusScope === 'active' ? new Set(ACTIVE_NUDGE_CODES) : new Set(ALL_FOLLOW_UP_CODES);
+        if (selectedStatusScope === 'active') return new Set(ACTIVE_NUDGE_CODES);
+        if (selectedStatusScope === 'all-statuses') return new Set(ALL_STATUS_CODES);
+        return new Set(ALL_FOLLOW_UP_CODES);
       }
       function selectedStatusLabel() {
-        return selectedStatusScope === 'active' ? 'active statuses 1, 2, 3a, 3b, and 4' : 'all follow-up statuses except 6a and 8';
+        if (selectedStatusScope === 'active') return 'active statuses 1, 2, 3a, 3b, and 4';
+        if (selectedStatusScope === 'all-statuses') return 'all placement statuses 1 through 8';
+        return 'all follow-up statuses except 6a and 8';
       }
       async function loadSignedInUser() {
         const result = await apiRequest('/api/auth/session');
@@ -742,15 +754,15 @@
         const skippedRows = [];
         const assignments = new Set();
         const reports = {};
-        const remarkRowsByMiner = new Map();
-        const remarksByMiner = new Map();
         const includedStatuses = selectedStatusCodes();
         for (const range of valueRanges) {
           const tab = parseRangeTab(range.range);
           const values = range.values || [];
           const headerRow = values[0] || [];
           const seekerIdIndex = findColumnIndex(headerRow, ['Seeker ID', 'SeekerID', 'Seeker No', 'Seeker Number', 'Guest ID', 'GuestID', 'Guest No', 'Guest Number'], -1);
+          const statusIndex = findColumnIndex(headerRow, ['Placement Status', 'Status'], 12);
           const remarksIndex = findColumnIndex(headerRow, ['IMT Remarks', 'IMT Remark', 'Remarks'], 14);
+          const dltIndex = findColumnIndex(headerRow, ['Date Last touch', 'Date Last Touched', 'Last Touch Date', 'Last Touch', 'Last Touched', 'DLT'], 13);
           values.forEach((row, index) => {
             const rowIdx = index + 1;
             const imt = cleanImt(row[0]);
@@ -764,8 +776,9 @@
             const seekerId = seekerIdIndex >= 0 ? String(row[seekerIdIndex] ?? '').trim() : '';
             const guestName = resolveGuestName(row[3], row[4]) || 'Unnamed guest';
             const displayMinerName = minerName ? titleCase(minerName) : 'Missing miner';
-            const status = extractStatus(row[12]);
-            const touchedToday = normalizeDateCell(row[13]) === todaySheetDate();
+            const status = extractStatus(row[statusIndex]);
+            const lastTouch = normalizeDateCell(row[dltIndex]);
+            const touchedToday = lastTouch === todaySheetDate();
             const remarks = String(row[remarksIndex] ?? '').trim();
 
             if (PLACED_CODES.has(status)) reports[imt].placed += 1;
@@ -777,16 +790,16 @@
             if (imt !== selectedAssignment) return;
             if (!minerName) return skippedRows.push({ tab, rowIdx, minerName: displayMinerName, guestName, reason: 'Missing miner name' });
             const key = minerKey(minerName);
-            if (!remarkRowsByMiner.has(key)) remarkRowsByMiner.set(key, []);
-            remarkRowsByMiner.get(key).push({ tab, rowIdx, remarksColumn: columnLetter(remarksIndex) });
-            if (remarks) {
-              const currentRemarks = remarksByMiner.get(key) || [];
-              if (!currentRemarks.includes(remarks)) remarksByMiner.set(key, [...currentRemarks, remarks]);
-            }
             if (touchedToday) return skippedRows.push({ tab, rowIdx, minerName: displayMinerName, guestName, reason: `Already touched today (${todaySheetDate()})` });
             const number = normalizeNum(row[10]);
             if (!includedStatuses.has(status)) return skippedRows.push({ tab, rowIdx, minerName: displayMinerName, guestName, reason: `Excluded status ${status || 'blank'}` });
-            candidates.push({ key, imt, minerName: displayMinerName, number, seekerId, guestName, status, tab, rowIdx, remarks, remarksColumn: columnLetter(remarksIndex) });
+            candidates.push({
+              key, imt, minerName: displayMinerName, number, seekerId, guestName, status, tab, rowIdx,
+              lastTouch, remarks,
+              statusColumn: columnLetter(statusIndex),
+              dltColumn: columnLetter(dltIndex),
+              remarksColumn: columnLetter(remarksIndex),
+            });
           });
         }
         candidates.sort((a, b) => monthSortValue(a.tab) - monthSortValue(b.tab) || a.rowIdx - b.rowIdx || a.guestName.localeCompare(b.guestName));
@@ -809,13 +822,16 @@
               firstName: getMinerFirstName(row.minerName),
               seekers: [],
               rows: [],
-              remarkRows: remarkRowsByMiner.get(row.key) || [],
-              remarks: (remarksByMiner.get(row.key) || []).join('\n'),
             });
           }
           const miner = groups.get(row.key);
-          miner.seekers.push({ id: row.seekerId, fullName: row.guestName, status: row.status, tab: row.tab, rowIdx: row.rowIdx });
-          miner.rows.push({ tab: row.tab, rowIdx: row.rowIdx, assignment: row.imt, number, remarksColumn: row.remarksColumn });
+          const rowKey = `${row.tab}:${row.rowIdx}`;
+          miner.seekers.push({
+            id: row.seekerId, rowKey, fullName: row.guestName, status: row.status, tab: row.tab, rowIdx: row.rowIdx,
+            assignment: row.imt, lastTouch: row.lastTouch, remarks: row.remarks,
+            statusColumn: row.statusColumn, dltColumn: row.dltColumn, remarksColumn: row.remarksColumn,
+          });
+          miner.rows.push({ tab: row.tab, rowIdx: row.rowIdx, assignment: row.imt, number });
         });
         return {
           miners: [...groups.values()].map((miner) => {
@@ -950,6 +966,58 @@
           model = buildModel(data.valueRanges || [], selectedImt);
         }
         return { ...model, tabs: monthlyTabs, monthTabs: allMonthlyTabs };
+      }
+      function findSeeker(rowKey) {
+        for (const miner of miners) {
+          const seeker = miner.seekers.find((item) => item.rowKey === rowKey);
+          if (seeker) return seeker;
+        }
+        return null;
+      }
+      function sheetStatusValue(code) {
+        return `${code} ${STATUS_LABELS[code] || code}`;
+      }
+      function setSeekerSaveState(rowKey, message, isError = false) {
+        const state = document.querySelector(`[data-seeker-state="${CSS.escape(rowKey)}"]`);
+        if (state) {
+          state.textContent = message;
+          state.style.color = isError ? '#991b1b' : 'var(--leaf)';
+        }
+      }
+      async function saveSeekerUpdate(seeker) {
+        if (currentMode !== 'miner') return;
+        if (currentUser?.role === 'imt' && cleanImt(seeker.assignment) !== cleanImt(currentUser.imtAssignment)) {
+          throw new Error(`This seeker is assigned to ${seeker.assignment}, not ${currentUser.imtAssignment}.`);
+        }
+        if (!seeker.statusColumn || !seeker.remarksColumn || !seeker.dltColumn) throw new Error('This seeker row is missing one of the editable Sheet columns. Refresh and try again.');
+        setSeekerSaveState(seeker.rowKey, 'Saving...');
+        const data = [
+          { range: `${quoteSheetName(seeker.tab)}!${seeker.statusColumn}${seeker.rowIdx}`, values: [[sheetStatusValue(seeker.status)]] },
+          { range: `${quoteSheetName(seeker.tab)}!${seeker.remarksColumn}${seeker.rowIdx}`, values: [[seeker.remarks || '']] },
+          { range: `${quoteSheetName(seeker.tab)}!${seeker.dltColumn}${seeker.rowIdx}`, values: [[seeker.lastTouch || '']] },
+        ];
+        const response = await sheetFetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values:batchUpdate`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ valueInputOption: 'USER_ENTERED', data }),
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error?.message || 'Unable to update this seeker.');
+        try {
+          await appendAuditEntry({
+            action: 'Seeker details updated',
+            assignment: seeker.assignment,
+            targets: [seekerLabel(seeker)],
+            rows: 1,
+            tabs: [seeker.tab],
+            details: `Status: ${seeker.status}; DLT: ${seeker.lastTouch || '-'}; IMT Remarks updated on row ${seeker.rowIdx}`,
+          });
+        } catch (error) {
+          setSeekerSaveState(seeker.rowKey, `Saved, but audit failed: ${error.message}`, true);
+          return result;
+        }
+        setSeekerSaveState(seeker.rowKey, 'Saved to Sheet');
+        return result;
       }
       async function writeTouchedDates() {
         if (currentMode !== 'miner') throw new Error('Miner updates are only available in the Miner Nudge view.');
@@ -1162,10 +1230,29 @@
               <div>
                 <div class="section-title">${isConfirmation ? 'Guests for Confirmation' : 'Seekers'}</div>
                 ${miner.seekers.map((seeker) => `
-                  <div class="seeker">
-                    <div class="seeker-name">${escapeHtml(seekerLabel(seeker))}</div>
-                    <div class="subline">${badge(seeker.status)}<span>${escapeHtml(seeker.tab)} row ${seeker.rowIdx}</span></div>
-                  </div>
+                  ${isConfirmation
+                    ? `<div class="seeker">
+                         <div class="seeker-name">${escapeHtml(seekerLabel(seeker))}</div>
+                         <div class="subline">${badge(seeker.status)}<span>${escapeHtml(seeker.tab)} row ${seeker.rowIdx}</span></div>
+                       </div>`
+                    : `<div class="seeker" data-seeker-key="${escapeHtml(seeker.rowKey)}">
+                         <div class="seeker-name">${escapeHtml(seekerLabel(seeker))}</div>
+                         <div class="subline"><span>${escapeHtml(seeker.tab)} row ${seeker.rowIdx}</span></div>
+                         <div class="seeker-edit-grid">
+                           <label class="compact-field">Status
+                             <select data-seeker-status data-seeker-key="${escapeHtml(seeker.rowKey)}" aria-label="Placement status for ${escapeHtml(seekerLabel(seeker))}">
+                               ${ALL_STATUS_CODES.map((code) => `<option value="${code}"${seeker.status === code ? ' selected' : ''}>${code} - ${STATUS_LABELS[code]}</option>`).join('')}
+                             </select>
+                           </label>
+                           <label class="compact-field">DLT
+                             <input type="text" data-seeker-dlt data-seeker-key="${escapeHtml(seeker.rowKey)}" value="${escapeHtml(seeker.lastTouch || '')}" placeholder="M/D/YYYY" aria-label="Date last touch for ${escapeHtml(seekerLabel(seeker))}">
+                           </label>
+                         </div>
+                         <label class="remarks-field">IMT Remarks
+                           <textarea data-seeker-remarks data-seeker-key="${escapeHtml(seeker.rowKey)}" rows="2" aria-label="IMT Remarks for ${escapeHtml(seekerLabel(seeker))}">${escapeHtml(seeker.remarks || '')}</textarea>
+                         </label>
+                         <div class="seeker-save-state" data-seeker-state="${escapeHtml(seeker.rowKey)}"></div>
+                       </div>`}
                 `).join('')}
               </div>
               <div class="message-col">
@@ -1351,6 +1438,35 @@
         const miner = miners.find((item) => item.id === target.dataset.messageId);
         if (miner) miner.message = target.value;
       });
+      document.addEventListener('change', async (event) => {
+        const target = event.target.closest('[data-seeker-status]');
+        if (!target || currentMode !== 'miner') return;
+        const seeker = findSeeker(target.dataset.seekerKey);
+        if (!seeker) return;
+        seeker.status = target.value;
+        try {
+          await saveSeekerUpdate(seeker);
+          render();
+        } catch (error) {
+          setSeekerSaveState(seeker.rowKey, error.message, true);
+          showNotice('error', error.message);
+        }
+      });
+      document.addEventListener('blur', async (event) => {
+        const target = event.target.closest('[data-seeker-remarks], [data-seeker-dlt]');
+        if (!target || currentMode !== 'miner') return;
+        const seeker = findSeeker(target.dataset.seekerKey);
+        if (!seeker) return;
+        if (target.matches('[data-seeker-remarks]')) seeker.remarks = target.value;
+        if (target.matches('[data-seeker-dlt]')) seeker.lastTouch = target.value.trim();
+        try {
+          await saveSeekerUpdate(seeker);
+          render();
+        } catch (error) {
+          setSeekerSaveState(seeker.rowKey, error.message, true);
+          showNotice('error', error.message);
+        }
+      }, true);
       document.querySelectorAll('.tab').forEach((btn) => btn.addEventListener('click', () => { filter = btn.dataset.filter; render(); }));
       document.querySelectorAll('.mode-btn').forEach((btn) => btn.addEventListener('click', () => {
         if (currentUser?.role === 'imt' && btn.dataset.mode !== 'miner') return;
