@@ -22,7 +22,7 @@
       button { font: inherit; }
       .topbar { background: white; border-bottom: 1px solid var(--line); }
       .wrap { max-width: 1120px; margin: 0 auto; padding: 18px 16px; }
-      .toprow { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+      .toprow { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; }
       .eyebrow { color: var(--blue); font-size: 13px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
       h1 { margin: 4px 0 0; color: var(--ink); font-size: 24px; line-height: 1.15; }
       .date { background: var(--sky); color: var(--ink); border-radius: 7px; padding: 10px 12px; font-size: 14px; font-weight: 650; }
@@ -33,22 +33,22 @@
       .btn.gold { background: var(--gold); color: white; border-color: var(--gold); }
       .btn.green { background: var(--leaf); color: white; border-color: var(--leaf); }
       .btn:disabled { cursor: not-allowed; opacity: .65; background: #cbd5e1; border-color: #cbd5e1; color: white; }
-      .toolbar { display: flex; align-items: end; justify-content: space-between; gap: 14px; flex-wrap: wrap; margin-top: 20px; }
+      .toolbar { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); align-items: end; gap: 14px; margin-top: 20px; }
       .mode-switch { display: inline-flex; gap: 4px; border: 1px solid var(--line); background: #f8fafc; padding: 4px; border-radius: 7px; }
       .mode-btn { border: 0; border-radius: 5px; background: transparent; color: #30465e; padding: 10px 14px; font-weight: 800; cursor: pointer; }
       .mode-btn.active { background: white; box-shadow: 0 1px 4px rgba(15, 37, 64, .08); color: var(--blue); }
       .field { display: grid; gap: 6px; min-width: 220px; }
       .field label { color: #49627d; font-size: 12px; font-weight: 800; text-transform: uppercase; }
       select { min-height: 42px; border: 1px solid #cbd7e3; border-radius: 7px; background: white; color: var(--ink); padding: 0 12px; font: inherit; font-weight: 750; }
-      .report-line { color: #52667c; line-height: 1.55; max-width: 640px; }
+      .report-line { grid-column: 1 / -1; color: #52667c; line-height: 1.55; max-width: 760px; }
       .report-grid { display: grid; grid-template-columns: 1.35fr repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 12px; }
       .report-card { background: #f8fafc; border: 1px solid var(--line); border-radius: 8px; padding: 13px; }
-      .report-card.primary { background: #f0f9ff; border-color: #bae6fd; }
+      .report-card.primary { background: linear-gradient(145deg, #e7f6ff, #f8fcff); border-color: #8ed8ff; box-shadow: inset 3px 0 0 #38bdf8; }
       .report-label { color: #49627d; font-size: 12px; font-weight: 800; text-transform: uppercase; }
       .report-value { color: var(--ink); font-size: 24px; font-weight: 820; margin-top: 6px; }
       .report-note { color: #52667c; font-size: 13px; margin-top: 6px; line-height: 1.4; }
       .metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 8px; }
-      .metric, .panel, .card { background: white; border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 8px 26px rgba(23, 50, 77, .06); }
+      .metric, .panel, .card { background: white; border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 6px 20px rgba(23, 50, 77, .05); }
       .metric { padding: 16px; }
       .metric-label { color: #49627d; font-size: 12px; font-weight: 700; text-transform: uppercase; }
       .metric-value { color: var(--ink); font-size: 26px; font-weight: 760; margin-top: 8px; }
@@ -143,8 +143,10 @@
       .audit-table td { border-top: 1px solid var(--line); color: #334155; padding: 10px; vertical-align: top; line-height: 1.4; }
       .audit-table td strong { color: var(--ink); }
       .audit-summary { color: #52667c; margin-top: 6px; line-height: 1.5; }
-      .account { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-      .account-chip { color: #334155; font-size: 13px; font-weight: 750; }
+      .account { display: grid; justify-items: end; gap: 8px; }
+      .account-top, .account-bottom { display: flex; align-items: center; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
+      .account-bottom { min-height: 32px; }
+      .account-chip { color: #0754a6; font-size: 22px; line-height: 1.15; font-weight: 800; margin-top: 22px; }
       .auth-form { display: grid; gap: 12px; max-width: 420px; margin-top: 18px; }
       .auth-form label { display: grid; gap: 6px; color: #49627d; font-size: 12px; font-weight: 800; text-transform: uppercase; }
       .auth-form input, .user-form input, .user-form select { min-height: 42px; border: 1px solid #cbd7e3; border-radius: 7px; background: white; color: var(--ink); padding: 0 12px; font: inherit; }
@@ -159,13 +161,19 @@
       .temporary-password { margin-top: 14px; border: 1px solid #f5cf7d; background: #fffbeb; color: #713f12; border-radius: 7px; padding: 12px; line-height: 1.5; }
       .overview-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; margin-top: 14px; }
       @media (max-width: 760px) {
+        .toprow { flex-direction: column; gap: 14px; }
+        .account { width: 100%; justify-items: start; }
+        .account-top, .account-bottom { justify-content: flex-start; }
+        .toolbar { grid-template-columns: 1fr; }
         .report-grid { grid-template-columns: 1fr; }
         .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .open .card-body { display: block; }
         .message-col { margin-top: 16px; }
         .skipped-grid { grid-template-columns: 1fr; }
         .user-form, .user-row { grid-template-columns: 1fr; align-items: stretch; }
-        .account { width: 100%; }
+      }
+      @media (min-width: 761px) and (max-width: 920px) {
+        .toolbar { grid-template-columns: repeat(3, minmax(0, 1fr)); }
       }
     </style>
   </head>
@@ -175,13 +183,17 @@
         <div>
           <div class="eyebrow">CCF Welcome Center</div>
           <h1>Miner Nudge Tool</h1>
+          <div class="account-chip" id="accountChip" hidden></div>
         </div>
         <div class="account">
-          <div class="date" id="todayLabel"></div>
-          <button class="btn" id="refreshBtn" hidden>↻ Refresh</button>
-          <span class="account-chip" id="accountChip" hidden></span>
-          <button class="btn" id="changePasswordBtn" hidden>Change password</button>
-          <button class="btn" id="logoutBtn" hidden>Sign out</button>
+          <div class="account-top">
+            <div class="date" id="todayLabel"></div>
+            <button class="btn" id="refreshBtn" hidden>↻ Refresh</button>
+          </div>
+          <div class="account-bottom">
+            <button class="btn" id="changePasswordBtn" hidden>Change password</button>
+            <button class="btn" id="logoutBtn" hidden>Sign out</button>
+          </div>
         </div>
       </div>
     </header>
