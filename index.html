@@ -414,6 +414,19 @@
         signedInEmail = '';
         currentUser = null;
         sessionAuditLogged = false;
+        miners = [];
+        skipped = [];
+        auditEntries = [];
+        managedUsers = [];
+        imtOptions = [];
+        reportByImt = {};
+        activeReport = null;
+        monthTabs = [];
+        selectedMonthTabs = [];
+        expanded = new Set();
+        copiedMessage = '';
+        copiedNumber = '';
+        showNotice('', '');
       }
 
       async function apiRequest(path, options = {}) {
@@ -655,6 +668,7 @@
       }
       function showNotice(type, text) {
         $('notice').innerHTML = text ? `<div class="notice ${type}">${escapeHtml(text)}</div>` : '';
+        $('notice').hidden = !text;
       }
       function escapeHtml(text) {
         return String(text).replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[char]));
@@ -1290,7 +1304,7 @@
         document.querySelectorAll('.tab').forEach((btn) => btn.classList.toggle('active', btn.dataset.filter === filter));
         const visible = miners.filter((miner) => filter === 'sent' ? sent.has(miner.id) : filter === 'remaining' ? !sent.has(miner.id) : true);
         $('cards').innerHTML = visible.length ? visible.map(cardHtml).join('') : `<div class="card empty">No ${isConfirmation ? 'PCs' : 'miners'} in this view.</div>`;
-        $('skippedPanel').hidden = isAudit || isUsers || skipped.length === 0;
+        $('skippedPanel').hidden = !isSignedIn || isAudit || isUsers || skipped.length === 0;
         $('skippedSummary').textContent = isConfirmation ? `Skipped For confirmation rows (${skipped.length})` : `Skipped / excluded ${selectedImt} rows (${skipped.length})`;
         $('skippedGrid').innerHTML = skipped.map((row) => `
           <div class="skipped-item">
