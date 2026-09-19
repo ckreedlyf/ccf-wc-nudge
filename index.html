@@ -196,10 +196,10 @@
       .confirmation-intro { padding-top: 16px; color: #52667c; line-height: 1.55; }
       .confirmation-intro strong { display: block; color: var(--ink); font-size: 18px; margin-bottom: 4px; }
       .mode-count { display: inline-grid; min-width: 22px; height: 22px; place-items: center; margin-left: 6px; border-radius: 999px; background: #dbeafe; color: #0754a6; font-size: 11px; font-weight: 850; }
-      .updates-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
-      .updates-heading h2 { margin: 0; color: var(--ink); font-size: 20px; }
-      .updates-heading p { margin: 6px 0 0; color: var(--muted); line-height: 1.5; }
-      .updates-list { display: grid; gap: 12px; margin-top: 18px; }
+      .miner-companion-note { margin-top: 8px; padding: 9px 11px; color: #713f12; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 7px; font-size: 12px; line-height: 1.45; }
+      .documentation-link { display: inline-flex; align-items: center; gap: 4px; margin-top: 7px; padding: 0; border: 0; background: transparent; color: #0754a6; font: inherit; font-weight: 800; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+      .documentation-link:hover { color: #0b6fbd; }
+      .documentation-link:focus-visible { outline: 3px solid rgba(30, 107, 159, .22); outline-offset: 3px; border-radius: 3px; }
       .update-review-card { border: 1px solid var(--line); border-left: 4px solid var(--gold); border-radius: 7px; background: white; padding: 16px; }
       .update-review-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
       .update-review-name { color: var(--ink); font-size: 17px; font-weight: 850; }
@@ -229,6 +229,14 @@
       .modal { width: min(480px, 100%); background: white; border-radius: 8px; padding: 22px; box-shadow: 0 24px 70px rgba(15, 37, 64, .3); }
       .modal h2 { margin: 0; font-size: 20px; }
       .modal p { color: #52667c; line-height: 1.5; }
+      .documentation-modal { width: min(760px, 100%); max-height: calc(100vh - 40px); overflow: auto; }
+      .documentation-modal-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+      .documentation-modal-head .btn { min-width: 40px; padding: 8px 10px; }
+      .documentation-summary { margin: 8px 0 14px; color: #52667c; line-height: 1.5; }
+      .documentation-endorsement { margin-bottom: 14px; padding: 10px 12px; border-left: 4px solid var(--leaf); border-radius: 4px; background: #ecfdf5; color: #14532d; }
+      .documentation-image-wrap { display: grid; min-height: 220px; place-items: center; overflow: hidden; border: 1px solid var(--line); border-radius: 7px; background: #f8fafc; }
+      .documentation-image { display: block; width: 100%; max-height: 62vh; object-fit: contain; }
+      .documentation-image-status { padding: 24px; color: var(--muted); text-align: center; }
       .user-form { display: grid; grid-template-columns: 1.3fr .9fr .65fr auto; gap: 10px; align-items: end; margin-top: 16px; }
       .user-form label { display: grid; gap: 6px; color: #49627d; font-size: 12px; font-weight: 800; text-transform: uppercase; }
       .user-list { display: grid; gap: 9px; margin-top: 18px; }
@@ -252,7 +260,7 @@
         .message-col { margin-top: 16px; }
         .skipped-grid { grid-template-columns: 1fr; }
         .user-form, .user-row { grid-template-columns: 1fr; align-items: stretch; }
-        .updates-heading, .update-review-top { flex-direction: column; }
+        .update-review-top { flex-direction: column; }
         .update-status-flow { grid-template-columns: 1fr; }
         .update-arrow { transform: rotate(90deg); }
         .update-review-actions { justify-content: stretch; }
@@ -289,7 +297,6 @@
       <section class="panel" id="toolPanel">
         <div class="mode-switch" aria-label="Tool mode">
           <button class="mode-btn active" data-mode="miner">Miner Nudge</button>
-          <button class="mode-btn" data-mode="updates">Miner Updates <span class="mode-count" id="minerUpdatesBadge" hidden>0</span></button>
           <button class="mode-btn" data-mode="confirmation">For Confirmation</button>
           <button class="mode-btn" data-mode="audit">Audit Trail</button>
           <button class="mode-btn" data-mode="users">Users</button>
@@ -332,10 +339,6 @@
         <div class="confirmation-intro" id="auditIntro" hidden>
           <strong>Activity Audit Trail</strong>
           Review who selected an IMT queue, copied contact details or messages, changed sent tracking, and updated the centralized Sheet.
-        </div>
-        <div class="confirmation-intro" id="updatesIntro" hidden>
-          <strong>Miner-submitted updates</strong>
-          Review proposed seeker status changes for your IMT. Approving writes the verified update to Harvest; returning sends it back to the Miner with your correction note.
         </div>
         <div class="dashboard-insight" id="dashboardInsight"><span class="insight-icon">!</span><div><strong id="insightLead">Sign in to view progress.</strong><span id="insightDetail"></span></div></div>
         <div class="performance-layout" id="minerDashboard">
@@ -388,13 +391,6 @@
       </section>
 
       <div id="notice"></div>
-      <section class="panel" id="updatesPanel" hidden>
-        <div class="updates-heading">
-          <div><h2>Updates waiting for IMT approval</h2><p id="updatesSummary">No pending Miner updates.</p></div>
-          <span class="pill" id="updatesAssignment">MR</span>
-        </div>
-        <div class="updates-list" id="minerUpdatesList"></div>
-      </section>
       <section class="panel" id="auditPanel" hidden>
         <h2 style="margin:0;color:var(--ink);font-size:18px;">Recorded Activity</h2>
         <div class="audit-summary" id="auditSummary">No audit records yet.</div>
@@ -445,6 +441,21 @@
           <div class="actions"><button class="btn primary" type="submit">Update password</button><button class="btn" type="button" id="cancelPasswordBtn">Cancel</button></div>
         </form>
         <div id="passwordNotice"></div>
+      </section>
+    </div>
+
+    <div class="modal-backdrop" id="documentationModal" hidden>
+      <section class="modal documentation-modal" role="dialog" aria-modal="true" aria-labelledby="documentationTitle">
+        <div class="documentation-modal-head">
+          <div><h2 id="documentationTitle">Placement documentation</h2><div class="documentation-summary" id="documentationSummary"></div></div>
+          <button class="btn" type="button" id="closeDocumentationBtn" aria-label="Close documentation">X</button>
+        </div>
+        <div class="documentation-endorsement" id="documentationEndorsement"></div>
+        <div class="documentation-image-wrap">
+          <div class="documentation-image-status" id="documentationImageStatus">Loading attendance photo...</div>
+          <img class="documentation-image" id="documentationImage" alt="First DGroup attendance documentation" hidden>
+        </div>
+        <div class="actions"><a class="btn" id="openDocumentationLink" target="_blank" rel="noopener">Open original image</a></div>
       </section>
     </div>
 
@@ -500,7 +511,6 @@
       let copiedMessage = '';
       let copiedNumber = '';
       let dirtySeekers = new Set();
-      let minerUpdates = [];
       let filter = 'remaining';
 
       const $ = (id) => document.getElementById(id);
@@ -529,7 +539,6 @@
         copiedMessage = '';
         copiedNumber = '';
         dirtySeekers = new Set();
-        minerUpdates = [];
         showNotice('', '');
       }
 
@@ -714,6 +723,53 @@
       function seekerLabel(seeker) {
         return seeker.id ? `${seeker.id} - ${seeker.fullName}` : seeker.fullName;
       }
+      function minerCompanionNote(seeker) {
+        if (!seeker.minerCompanionUpdateIds?.length) return '';
+        const proposed = seeker.minerCompanionStatus;
+        const label = STATUS_LABELS[proposed] || proposed;
+        const isPlacement = ['6a', '6b', '6c'].includes(proposed);
+        const statusText = seeker.status === proposed
+          ? seeker.minerCompanionHarvestSaved
+            ? 'Harvest saved this status; Miner Companion acknowledgement is still pending.'
+            : 'This proposed status is not yet in Harvest. Use “Sync all updates” to apply it.'
+          : `The proposal has not been applied. Current selection: ${seeker.status} ${STATUS_LABELS[seeker.status] || seeker.status}.`;
+        const documentation = isPlacement && seeker.minerCompanionHasProof && seeker.minerCompanionProofUpdateId
+          ? `<br><button class="documentation-link" type="button" data-action="view-miner-documentation" data-seeker-key="${escapeHtml(seeker.rowKey)}">View documentation for confirmation</button>`
+          : '';
+        return `<div class="miner-companion-note" role="status"><strong>Miner Companion update</strong> from ${escapeHtml(seeker.minerCompanionMiner || 'a Miner')} (${escapeHtml(relativeAge(seeker.minerCompanionSubmittedAt))}): proposes <strong>${escapeHtml(proposed)} ${escapeHtml(label)}</strong>. ${escapeHtml(statusText)}${seeker.minerCompanionNote ? `<br><span>Miner note: ${escapeHtml(seeker.minerCompanionNote)}</span>` : ''}${documentation}</div>`;
+      }
+      function closeDocumentation() {
+        $('documentationModal').hidden = true;
+        $('documentationImage').hidden = true;
+        $('documentationImage').removeAttribute('src');
+        $('documentationImageStatus').hidden = false;
+        $('documentationImageStatus').textContent = 'Loading attendance photo...';
+      }
+      function openDocumentation(seeker) {
+        if (!seeker?.minerCompanionProofUpdateId || !['6a', '6b', '6c'].includes(seeker.minerCompanionStatus)) {
+          throw new Error('No placement documentation is available for this seeker update.');
+        }
+        const proofUrl = `/api/miner-updates?action=proof&assignment=${encodeURIComponent(selectedImt)}&id=${encodeURIComponent(seeker.minerCompanionProofUpdateId)}`;
+        $('documentationTitle').textContent = `Placement documentation · ${seekerLabel(seeker)}`;
+        $('documentationSummary').textContent = `${seeker.minerCompanionMiner || 'Miner'} proposes ${seeker.minerCompanionStatus} ${STATUS_LABELS[seeker.minerCompanionStatus] || seeker.minerCompanionStatus}.`;
+        $('documentationEndorsement').innerHTML = `<strong>Endorsed to:</strong> ${escapeHtml(seeker.minerCompanionLeader || 'Not specified')}`;
+        $('openDocumentationLink').href = proofUrl;
+        $('documentationImage').hidden = true;
+        $('documentationImageStatus').hidden = false;
+        $('documentationImageStatus').textContent = 'Loading attendance photo...';
+        $('documentationImage').onload = () => {
+          $('documentationImageStatus').hidden = true;
+          $('documentationImage').hidden = false;
+        };
+        $('documentationImage').onerror = () => {
+          $('documentationImage').hidden = true;
+          $('documentationImageStatus').hidden = false;
+          $('documentationImageStatus').textContent = 'This image cannot be previewed in the browser. Use “Open original image” below.';
+        };
+        $('documentationImage').src = proofUrl;
+        $('documentationModal').hidden = false;
+        $('closeDocumentationBtn').focus();
+      }
       function buildGenderMap(valueRanges) {
         const map = new Map();
         for (const range of valueRanges || []) {
@@ -828,7 +884,7 @@
           currentMode = 'confirmation';
         } else if (currentUser.role === 'admin' && currentUser.imtAssignment) {
           selectedImt = currentUser.imtAssignment;
-        } else if (!['miner', 'updates', 'confirmation', 'audit', 'users'].includes(currentMode)) {
+        } else if (!['miner', 'confirmation', 'audit', 'users'].includes(currentMode)) {
           currentMode = 'miner';
         }
         if (currentUser.mustChangePassword) {
@@ -1265,11 +1321,59 @@
       function markSeekerDirty(seeker) {
         const changed = seeker.status !== seeker.syncedStatus
           || seeker.lastTouch !== seeker.syncedLastTouch
-          || seeker.remarks !== seeker.syncedRemarks;
+          || seeker.remarks !== seeker.syncedRemarks
+          || Boolean(seeker.minerCompanionUpdateIds?.length);
         changed ? dirtySeekers.add(seeker.rowKey) : dirtySeekers.delete(seeker.rowKey);
-        setSeekerSaveState(seeker.rowKey, changed ? 'Changes ready to sync' : '');
+        setSeekerSaveState(seeker.rowKey, seeker.minerCompanionUpdateIds?.length ? 'Miner Companion update ready to sync' : changed ? 'Changes ready to sync' : '');
         const miner = miners.find((item) => item.seekers.some((candidate) => candidate.rowKey === seeker.rowKey));
         if (miner) updateMinerSyncUi(miner);
+      }
+      function matchMinerCompanionUpdate(update, seekers) {
+        const guestId = String(update.seeker?.id || '').trim();
+        const idMatches = guestId ? seekers.filter((seeker) => String(seeker.id || '').trim() === guestId) : [];
+        const updateTab = String(update.seeker?.tab || '').trim().toLowerCase();
+        const updateRow = Number(update.seeker?.row);
+        const sameSource = (seeker) => updateTab && Number.isFinite(updateRow)
+          && String(seeker.tab || '').trim().toLowerCase() === updateTab
+          && Number(seeker.rowIdx) === updateRow;
+        if (idMatches.length) return idMatches.find(sameSource) || idMatches[0];
+        if (!updateTab || !Number.isFinite(updateRow)) return null;
+        return seekers.find(sameSource) || null;
+      }
+      async function applyPendingMinerUpdates() {
+        const result = await apiRequest(`/api/miner-updates?assignment=${encodeURIComponent(selectedImt)}`);
+        const seekers = miners.flatMap((miner) => miner.seekers);
+        const grouped = new Map();
+        let unmatched = 0;
+        for (const update of [...(result.updates || [])].sort((a, b) => String(a.createdAt || '').localeCompare(String(b.createdAt || '')))) {
+          const seeker = matchMinerCompanionUpdate(update, seekers);
+          if (!seeker) { unmatched += 1; continue; }
+          let proposal = grouped.get(seeker.rowKey);
+          if (!proposal) {
+            proposal = { seeker, ids: [], updates: [] };
+            grouped.set(seeker.rowKey, proposal);
+          }
+          proposal.ids.push(update.id);
+          proposal.updates.push(update);
+        }
+        for (const { seeker, ids, updates } of grouped.values()) {
+          const latest = updates[updates.length - 1];
+          if (!ALL_STATUS_CODES.includes(String(latest.status))) { unmatched += updates.length; continue; }
+          seeker.minerCompanionUpdateIds = ids;
+          seeker.minerCompanionStatus = String(latest.status);
+          seeker.minerCompanionMiner = latest.miner?.name || 'Miner';
+          seeker.minerCompanionSubmittedAt = latest.createdAt || '';
+          seeker.minerCompanionNote = latest.note || '';
+          seeker.minerCompanionLeader = latest.leader || '';
+          seeker.minerCompanionHasProof = Boolean(latest.hasProof);
+          seeker.minerCompanionProofUpdateId = latest.hasProof ? latest.id : '';
+          seeker.minerCompanionHarvestSaved = false;
+          seeker.status = seeker.minerCompanionStatus;
+          dirtySeekers.add(seeker.rowKey);
+          setSeekerSaveState(seeker.rowKey, 'Miner Companion update ready to sync');
+        }
+        miners.forEach(updateMinerSyncUi);
+        return { count: grouped.size, unmatched, total: (result.updates || []).length };
       }
       async function saveMinerUpdates(miner) {
         if (currentMode !== 'miner') return;
@@ -1284,38 +1388,74 @@
         }
         const data = editedSeekers.flatMap((seeker) => {
           const updates = [];
-          if (seeker.status !== seeker.syncedStatus) updates.push({ range: `${quoteSheetName(seeker.tab)}!${seeker.statusColumn}${seeker.rowIdx}`, values: [[sheetStatusValue(seeker)]] });
+          if (seeker.status !== seeker.syncedStatus || (seeker.minerCompanionUpdateIds?.length && !seeker.minerCompanionHarvestSaved)) updates.push({ range: `${quoteSheetName(seeker.tab)}!${seeker.statusColumn}${seeker.rowIdx}`, values: [[sheetStatusValue(seeker)]] });
           if (seeker.remarks !== seeker.syncedRemarks) updates.push({ range: `${quoteSheetName(seeker.tab)}!${seeker.remarksColumn}${seeker.rowIdx}`, values: [[seeker.remarks || '']] });
           if (seeker.lastTouch !== seeker.syncedLastTouch) updates.push({ range: `${quoteSheetName(seeker.tab)}!${seeker.dltColumn}${seeker.rowIdx}`, values: [[seeker.lastTouch || '']] });
           return updates;
         });
-        const response = await sheetFetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values:batchUpdate`, {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ valueInputOption: 'USER_ENTERED', data }),
-        });
-        const result = await response.json();
-        if (!response.ok) throw new Error(result.error?.message || `Unable to update ${miner.name}'s seekers.`);
+        let result = { updatedCells: 0 };
+        if (data.length) {
+          const response = await sheetFetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values:batchUpdate`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ valueInputOption: 'USER_ENTERED', data }),
+          });
+          result = await response.json();
+          if (!response.ok) throw new Error(result.error?.message || `Unable to update ${miner.name}'s seekers.`);
+        }
         editedSeekers.forEach((seeker) => {
           seeker.syncedStatus = seeker.status;
           seeker.syncedLastTouch = seeker.lastTouch;
           seeker.syncedRemarks = seeker.remarks;
           dirtySeekers.delete(seeker.rowKey);
+          if (seeker.minerCompanionUpdateIds?.length && seeker.status === seeker.minerCompanionStatus) seeker.minerCompanionHarvestSaved = true;
         });
         let auditWarning = '';
-        try {
-          await appendAuditEntry({
-            action: 'Miner seeker updates synced',
-            assignment: miner.assignment,
-            targets: [miner.name],
-            rows: editedSeekers.length,
-            tabs: editedSeekers.map((seeker) => seeker.tab),
-            details: `${editedSeekers.length} seeker row${editedSeekers.length === 1 ? '' : 's'} updated across ${data.length} changed cell${data.length === 1 ? '' : 's'}`,
-          });
-        } catch (error) {
-          auditWarning = `Updates saved, but audit logging failed: ${error.message}`;
+        if (data.length) {
+          try {
+            await appendAuditEntry({
+              action: 'Miner seeker updates synced',
+              assignment: miner.assignment,
+              targets: [miner.name],
+              rows: editedSeekers.length,
+              tabs: editedSeekers.map((seeker) => seeker.tab),
+              details: `${editedSeekers.length} seeker row${editedSeekers.length === 1 ? '' : 's'} updated across ${data.length} changed cell${data.length === 1 ? '' : 's'}`,
+            });
+          } catch (error) {
+            auditWarning = `Updates saved, but audit logging failed: ${error.message}`;
+          }
         }
-        return { ...result, editedSeekers, auditWarning };
+        let companionWarning = '';
+        const companionIds = editedSeekers
+          .filter((seeker) => seeker.minerCompanionUpdateIds?.length && seeker.status === seeker.minerCompanionStatus)
+          .flatMap((seeker) => seeker.minerCompanionUpdateIds);
+        if (companionIds.length) {
+          try {
+            await apiRequest('/api/miner-updates', {
+              method: 'POST',
+              body: JSON.stringify({ action: 'acknowledge', assignment: selectedImt, ids: companionIds }),
+            });
+            const acknowledged = new Set(companionIds);
+            editedSeekers.forEach((seeker) => {
+              if (!seeker.minerCompanionUpdateIds?.some((id) => acknowledged.has(id))) return;
+              seeker.minerCompanionUpdateIds = seeker.minerCompanionUpdateIds.filter((id) => !acknowledged.has(id));
+              if (!seeker.minerCompanionUpdateIds.length) {
+                seeker.minerCompanionStatus = '';
+                seeker.minerCompanionLeader = '';
+                seeker.minerCompanionHasProof = false;
+                seeker.minerCompanionProofUpdateId = '';
+                seeker.minerCompanionHarvestSaved = false;
+              }
+              markSeekerDirty(seeker);
+            });
+          } catch (error) {
+            companionWarning = `Harvest was updated, but Miner Companion could not be acknowledged: ${error.message}`;
+            editedSeekers
+              .filter((seeker) => seeker.minerCompanionUpdateIds?.length && seeker.status === seeker.minerCompanionStatus)
+              .forEach(markSeekerDirty);
+          }
+        }
+        return { ...result, editedSeekers, auditWarning: [auditWarning, companionWarning].filter(Boolean).join(' ') };
       }
       async function writeTouchedDates() {
         if (currentMode !== 'miner') throw new Error('Miner updates are only available in the Miner Nudge view.');
@@ -1396,39 +1536,6 @@
         }
         return { ...result, auditWarning };
       }
-      function renderMinerUpdates() {
-        $('updatesAssignment').textContent = selectedImt;
-        $('updatesSummary').textContent = minerUpdates.length
-          ? `${minerUpdates.length} update${minerUpdates.length === 1 ? '' : 's'} need a decision. Oldest submissions appear first.`
-          : `No Miner updates are waiting for ${selectedImt}.`;
-        $('minerUpdatesBadge').textContent = minerUpdates.length;
-        $('minerUpdatesBadge').hidden = minerUpdates.length === 0;
-        $('minerUpdatesList').innerHTML = minerUpdates.length ? minerUpdates.map((update) => `
-          <article class="update-review-card">
-            <div class="update-review-top">
-              <div>
-                <div class="update-review-name">${escapeHtml(update.seeker?.id || '')} - ${escapeHtml(update.seeker?.name || 'Unknown seeker')}</div>
-                <div class="update-review-meta">Submitted by <strong>${escapeHtml(update.miner?.name || 'Unknown Miner')}</strong> ${escapeHtml(relativeAge(update.createdAt))}${update.seeker?.tab ? ` · ${escapeHtml(update.seeker.tab)} row ${escapeHtml(update.seeker.row || '')}` : ''}</div>
-              </div>
-              <span class="pill">${escapeHtml(update.assignment || selectedImt)}</span>
-            </div>
-            <div class="update-status-flow" aria-label="Current and proposed placement status">
-              <div class="update-status-box">Current status<strong>${escapeHtml(update.seeker?.currentStatus || '')} · ${escapeHtml(update.seeker?.currentStatusLabel || '')}</strong></div>
-              <div class="update-arrow" aria-hidden="true">→</div>
-              <div class="update-status-box proposed">Miner proposes<strong>${escapeHtml(update.status || '')} · ${escapeHtml(update.statusLabel || '')}</strong></div>
-            </div>
-            <div class="update-context">
-              ${update.leader ? `<div><strong>Endorsed to:</strong> ${escapeHtml(update.leader)}</div>` : ''}
-              ${update.note ? `<div><strong>Miner note:</strong> ${escapeHtml(update.note)}</div>` : '<div class="subline">No additional note supplied.</div>'}
-            </div>
-            <div class="update-review-actions">
-              ${update.hasProof ? `<a class="btn" href="/api/miner-updates?action=proof&amp;assignment=${encodeURIComponent(selectedImt)}&amp;id=${encodeURIComponent(update.id)}" target="_blank" rel="noopener">View attendance proof</a>` : ''}
-              <button class="btn danger" type="button" data-action="return-miner-update" data-id="${escapeHtml(update.id)}">Return to Miner</button>
-              <button class="btn green" type="button" data-action="approve-miner-update" data-id="${escapeHtml(update.id)}">Approve &amp; sync</button>
-            </div>
-          </article>
-        `).join('') : '<div class="empty">You are all caught up. New Miner submissions for this IMT will appear here.</div>';
-      }
       function render() {
         const sentMiners = miners.filter((miner) => sent.has(miner.id));
         const totalSeekers = miners.reduce((sum, miner) => sum + miner.seekers.length, 0);
@@ -1438,30 +1545,25 @@
         const isConfirmation = currentMode === 'confirmation';
         const isAudit = currentMode === 'audit';
         const isUsers = currentMode === 'users';
-        const isUpdates = currentMode === 'updates';
         const isAdmin = currentUser?.role === 'admin';
         const isSignedIn = Boolean(accessToken && currentUser);
         $('toolPanel').hidden = !isSignedIn;
         document.querySelectorAll('.mode-btn').forEach((btn) => {
           const allowed = !currentUser ? btn.dataset.mode === 'miner'
             : isAdmin
-            || (currentUser.role === 'confirmation' ? btn.dataset.mode === 'confirmation' : ['miner', 'updates'].includes(btn.dataset.mode));
+            || (currentUser.role === 'confirmation' ? btn.dataset.mode === 'confirmation' : btn.dataset.mode === 'miner');
           btn.hidden = !allowed;
           btn.classList.toggle('active', btn.dataset.mode === currentMode);
         });
-        $('minerControls').hidden = !isSignedIn || isConfirmation || isAudit || isUsers || isUpdates;
-        $('minerDashboard').hidden = !isSignedIn || isAudit || isUsers || isUpdates;
-        $('dashboardInsight').hidden = !isSignedIn || isConfirmation || isAudit || isUsers || isUpdates;
-        $('analyticsDashboard').hidden = !isSignedIn || isConfirmation || isAudit || isUsers || isUpdates;
+        $('minerControls').hidden = !isSignedIn || isConfirmation || isAudit || isUsers;
+        $('minerDashboard').hidden = !isSignedIn || isAudit || isUsers;
+        $('dashboardInsight').hidden = !isSignedIn || isConfirmation || isAudit || isUsers;
+        $('analyticsDashboard').hidden = !isSignedIn || isConfirmation || isAudit || isUsers;
         $('confirmationIntro').hidden = !isConfirmation;
         $('auditIntro').hidden = !isAudit;
-        $('updatesIntro').hidden = !isUpdates;
-        $('queueMetrics').hidden = !isSignedIn || isAudit || isUsers || isUpdates;
-        $('queueProgress').hidden = !isSignedIn || isAudit || isUsers || isUpdates;
-        $('updatesPanel').hidden = !isUpdates || !isSignedIn;
         $('auditPanel').hidden = !isAudit || !accessToken;
         $('usersPanel').hidden = !isUsers || !accessToken || !isAdmin;
-        $('cards').hidden = !isSignedIn || isAudit || isUsers || isUpdates;
+        $('cards').hidden = !isSignedIn || isAudit || isUsers;
         $('adminOverview').hidden = !(isAdmin && currentMode === 'miner' && accessToken);
         const imtSort = $('imtSortSelect')?.value || 'rate';
         $('adminOverviewGrid').innerHTML = Object.values(reportByImt).sort((a, b) => imtSort === 'volume'
@@ -1470,7 +1572,7 @@
           const rate = item.total ? Math.round(item.placed / item.total * 100) : 0;
           return `<div class="imt-row"><strong class="imt-code">${escapeHtml(item.code)}</strong><div class="imt-track" aria-label="${escapeHtml(item.code)} placement progress"><div class="imt-fill" style="width:${rate}%"></div></div><strong class="imt-rate">${rate}%</strong><span class="imt-volume">${item.placed} / ${item.total}</span></div>`;
         }).join('');
-        $('imtSelect').disabled = isConfirmation || isAudit || isUpdates || !accessToken || imtOptions.length === 0 || currentUser?.role === 'imt';
+        $('imtSelect').disabled = isConfirmation || isAudit || !accessToken || imtOptions.length === 0 || currentUser?.role === 'imt';
         $('imtSelect').innerHTML = (imtOptions.length ? imtOptions : [selectedImt]).map((imt) => `<option value="${escapeHtml(imt)}"${imt === selectedImt ? ' selected' : ''}>${escapeHtml(imt)}</option>`).join('');
         $('fromMonthSelect').disabled = isConfirmation || !accessToken || monthTabs.length === 0;
         $('toMonthSelect').disabled = isConfirmation || !accessToken || monthTabs.length === 0;
@@ -1547,7 +1649,7 @@
         document.querySelectorAll('.tab').forEach((btn) => btn.classList.toggle('active', btn.dataset.filter === filter));
         const visible = miners.filter((miner) => filter === 'sent' ? sent.has(miner.id) : filter === 'remaining' ? !sent.has(miner.id) : true);
         $('cards').innerHTML = visible.length ? visible.map(cardHtml).join('') : `<div class="card empty">No ${isConfirmation ? 'PCs' : 'miners'} in this view.</div>`;
-        $('skippedPanel').hidden = !isSignedIn || isAudit || isUsers || isUpdates || skipped.length === 0;
+        $('skippedPanel').hidden = !isSignedIn || isAudit || isUsers || skipped.length === 0;
         $('skippedSummary').textContent = isConfirmation ? `Skipped For confirmation rows (${skipped.length})` : `Skipped / excluded ${selectedImt} rows (${skipped.length})`;
         $('skippedGrid').innerHTML = skipped.map((row) => `
           <div class="skipped-item">
@@ -1556,7 +1658,6 @@
             ${escapeHtml(row.tab)} row ${row.rowIdx}: ${escapeHtml(row.reason)}
           </div>
         `).join('');
-        renderMinerUpdates();
       }
       function cardHtml(miner) {
         const counts = miner.seekers.reduce((acc, seeker) => {
@@ -1594,6 +1695,7 @@
                          <div class="subline">${badge(seeker.status)}<span>${escapeHtml(seeker.tab)} row ${seeker.rowIdx}</span></div>
                        </div>`
                     : `<div class="seeker" data-seeker-key="${escapeHtml(seeker.rowKey)}">
+                         ${minerCompanionNote(seeker)}
                          <div class="seeker-edit-grid">
                            <div>
                              <div class="seeker-name">${escapeHtml(seekerLabel(seeker))}</div>
@@ -1611,7 +1713,7 @@
                          <label class="remarks-field">IMT Remarks
                            <textarea data-seeker-remarks data-seeker-key="${escapeHtml(seeker.rowKey)}" rows="2" aria-label="IMT Remarks for ${escapeHtml(seekerLabel(seeker))}">${escapeHtml(seeker.remarks || '')}</textarea>
                          </label>
-                         <div class="seeker-save-state" data-seeker-state="${escapeHtml(seeker.rowKey)}"></div>
+                          <div class="seeker-save-state" data-seeker-state="${escapeHtml(seeker.rowKey)}">${seeker.minerCompanionUpdateIds?.length ? 'Miner Companion update ready to sync' : ''}</div>
                        </div>`}
                 `).join('')}
               </div>
@@ -1687,24 +1789,6 @@
           await loadManagedUsers();
           return true;
         }
-        if (currentMode === 'updates') {
-          showNotice('', '');
-          $('minerUpdatesList').innerHTML = '<div class="empty">Loading Miner-submitted updates...</div>';
-          try {
-            const result = await apiRequest(`/api/miner-updates?assignment=${encodeURIComponent(selectedImt)}`);
-            minerUpdates = result.updates || [];
-            render();
-            showNotice('success', minerUpdates.length
-              ? `Loaded ${minerUpdates.length} pending Miner update${minerUpdates.length === 1 ? '' : 's'} for ${selectedImt}.`
-              : `No pending Miner updates for ${selectedImt}.`);
-            return true;
-          } catch (error) {
-            minerUpdates = [];
-            render();
-            showNotice('error', error.message);
-            return false;
-          }
-        }
         let loaded = false;
         showNotice('', '');
         $('cards').innerHTML = `<div class="card empty">Loading ${currentMode === 'audit' ? 'the audit trail' : currentMode === 'confirmation' ? 'Prayer Coaches from the For confirmation tab' : 'miners from Google Sheets'}...</div>`;
@@ -1712,6 +1796,15 @@
           const queue = await fetchQueue();
           miners = queue.miners;
           dirtySeekers = new Set();
+          let companionResult = { count: 0, unmatched: 0, total: 0 };
+          let companionError = '';
+          if (currentMode === 'miner' && currentUser?.role !== 'confirmation') {
+            try {
+              companionResult = await applyPendingMinerUpdates();
+            } catch (error) {
+              companionError = error.message || 'Unable to check Miner Companion updates.';
+            }
+          }
           skipped = queue.skipped;
           auditEntries = queue.auditEntries || [];
           imtOptions = queue.imtOptions;
@@ -1733,7 +1826,12 @@
             : currentMode === 'confirmation'
               ? `Loaded ${miners.length} PCs from the "${CONFIRMATION_TAB}" tab. Signed in as ${signedInEmail}.`
               : `Loaded ${selectedImt}: ${miners.length} miners from ${selectedRangeLabel()} using ${selectedStatusLabel()}. Signed in as ${signedInEmail}.`;
-          showNotice(sessionAuditWarning ? 'error' : 'success', sessionAuditWarning || loadedMessage);
+          const companionMessage = currentMode !== 'miner' ? '' : companionError
+            ? `Miner Companion updates could not be loaded: ${companionError}`
+            : companionResult.total
+              ? `${companionResult.count} seeker status${companionResult.count === 1 ? '' : 'es'} from Miner Companion staged in the queue; ${companionResult.unmatched} update${companionResult.unmatched === 1 ? '' : 's'} could not be matched. Proposed statuses are not in Harvest until you use “Sync all updates”.`
+              : 'No pending Miner Companion updates for this queue.';
+          showNotice(sessionAuditWarning || companionError ? 'error' : 'success', `${sessionAuditWarning || loadedMessage} ${companionMessage}`);
         } catch (error) {
           if (/Invalid Credentials|Login Required|authentication credentials|session has expired/i.test(error.message)) {
             clearGoogleSession();
@@ -1769,34 +1867,11 @@
           } catch (error) { showNotice('error', error.message); }
           return;
         }
-        if (['approve-miner-update', 'return-miner-update'].includes(target.dataset.action)) {
-          const update = minerUpdates.find((item) => item.id === target.dataset.id);
-          if (!update) return;
-          const decision = target.dataset.action === 'approve-miner-update' ? 'approve' : 'return';
-          let note = '';
-          if (decision === 'return') {
-            note = window.prompt(`What should ${update.miner?.name || 'the Miner'} correct before resubmitting?`, '')?.trim() || '';
-            if (!note) return;
-          } else if (!window.confirm(`Approve ${update.seeker?.id || ''} - ${update.seeker?.name || 'this seeker'} as ${update.status} and sync it to Harvest?`)) {
-            return;
-          }
+        if (target.dataset.action === 'view-miner-documentation') {
+          const seeker = findSeeker(target.dataset.seekerKey);
           try {
-            target.disabled = true;
-            target.textContent = decision === 'approve' ? 'Approving...' : 'Returning...';
-            const result = await apiRequest('/api/miner-updates', {
-              method: 'POST',
-              body: JSON.stringify({ id: update.id, assignment: selectedImt, decision, note }),
-            });
-            await loadQueue();
-            const message = decision === 'approve'
-              ? result.harvest?.state === 'synced'
-                ? `${update.seeker?.name || 'Seeker'} approved and synced to Harvest.`
-                : `${update.seeker?.name || 'Seeker'} approved. Harvest sync is pending: ${result.harvest?.reason || 'retry required'}`
-              : `${update.seeker?.name || 'Update'} returned to ${update.miner?.name || 'the Miner'} for correction.`;
-            showNotice(result.auditWarning ? 'error' : 'success', result.auditWarning ? `${message} ${result.auditWarning}` : message);
+            openDocumentation(seeker);
           } catch (error) {
-            target.disabled = false;
-            target.textContent = decision === 'approve' ? 'Approve & sync' : 'Return to Miner';
             showNotice('error', error.message);
           }
           return;
@@ -1897,7 +1972,7 @@
       }, true);
       document.querySelectorAll('.tab').forEach((btn) => btn.addEventListener('click', () => { filter = btn.dataset.filter; render(); }));
       document.querySelectorAll('.mode-btn').forEach((btn) => btn.addEventListener('click', () => {
-        if (currentUser?.role === 'imt' && !['miner', 'updates'].includes(btn.dataset.mode)) return;
+        if (currentUser?.role === 'imt' && btn.dataset.mode !== 'miner') return;
         if (currentUser?.role === 'confirmation' && btn.dataset.mode !== 'confirmation') return;
         if (btn.dataset.mode === 'users' && currentUser?.role !== 'admin') return;
         if (currentMode === 'users' && btn.dataset.mode !== 'users') {
@@ -1960,6 +2035,13 @@
         signIn().catch((error) => showNotice('error', error.message));
       });
       $('logoutBtn').addEventListener('click', () => signOut().catch((error) => showNotice('error', error.message)));
+      $('closeDocumentationBtn').addEventListener('click', closeDocumentation);
+      $('documentationModal').addEventListener('click', (event) => {
+        if (event.target === $('documentationModal')) closeDocumentation();
+      });
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && !$('documentationModal').hidden) closeDocumentation();
+      });
       $('changePasswordBtn').addEventListener('click', () => {
         $('passwordCopy').textContent = 'Use at least 12 characters. This replaces your current password immediately.';
         $('cancelPasswordBtn').textContent = 'Cancel';
