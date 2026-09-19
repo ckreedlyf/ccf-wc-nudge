@@ -1,8 +1,12 @@
 const assert = require('node:assert/strict');
 const { _test } = require('../api/sheets');
+const { _test: updateTest } = require('../api/miner-updates');
 
 const sheetId = process.env.CCF_SHEET_ID || '1TI_bslfoK96fhM4PJ45TlYlmMLTCEq2svVgqXFBdfWY';
 const base = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}`;
+
+assert.equal(updateTest.cleanImt(' mr '), 'MR');
+assert.equal(updateTest.cleanImt('JG<script>'), 'JGSCRIPT');
 const batch = (range) => `${base}/values:batchGet?${new URLSearchParams({ ranges: range })}`;
 
 assert.equal(_test.googleErrorMessage({ error: { message: 'The caller does not have permission' } }), 'The caller does not have permission');

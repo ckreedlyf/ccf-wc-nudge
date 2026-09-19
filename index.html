@@ -195,6 +195,23 @@
       .skipped-item { background: #f8fafc; border-radius: 6px; padding: 8px; color: #52667c; font-size: 13px; }
       .confirmation-intro { padding-top: 16px; color: #52667c; line-height: 1.55; }
       .confirmation-intro strong { display: block; color: var(--ink); font-size: 18px; margin-bottom: 4px; }
+      .mode-count { display: inline-grid; min-width: 22px; height: 22px; place-items: center; margin-left: 6px; border-radius: 999px; background: #dbeafe; color: #0754a6; font-size: 11px; font-weight: 850; }
+      .updates-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+      .updates-heading h2 { margin: 0; color: var(--ink); font-size: 20px; }
+      .updates-heading p { margin: 6px 0 0; color: var(--muted); line-height: 1.5; }
+      .updates-list { display: grid; gap: 12px; margin-top: 18px; }
+      .update-review-card { border: 1px solid var(--line); border-left: 4px solid var(--gold); border-radius: 7px; background: white; padding: 16px; }
+      .update-review-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
+      .update-review-name { color: var(--ink); font-size: 17px; font-weight: 850; }
+      .update-review-meta { margin-top: 4px; color: var(--muted); font-size: 13px; line-height: 1.45; }
+      .update-status-flow { display: grid; grid-template-columns: minmax(0, 1fr) 24px minmax(0, 1fr); align-items: center; gap: 10px; margin-top: 14px; }
+      .update-status-box { min-height: 68px; border-radius: 7px; background: #f6f8fb; padding: 10px 12px; color: #49627d; font-size: 12px; }
+      .update-status-box.proposed { background: #fff8df; color: #713f12; }
+      .update-status-box strong { display: block; margin-top: 4px; color: var(--ink); font-size: 14px; }
+      .update-arrow { text-align: center; color: var(--muted); font-weight: 850; }
+      .update-context { display: grid; gap: 7px; margin-top: 12px; color: #334155; font-size: 13px; line-height: 1.5; }
+      .update-review-actions { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+      .btn.danger { border-color: #fecaca; color: #991b1b; background: #fff7f7; }
       .audit-table-wrap { overflow-x: auto; margin-top: 14px; border: 1px solid var(--line); border-radius: 7px; }
       .audit-table { width: 100%; min-width: 980px; border-collapse: collapse; font-size: 13px; }
       .audit-table th { background: #f8fafc; color: #49627d; padding: 10px; text-align: left; text-transform: uppercase; font-size: 11px; }
@@ -235,6 +252,11 @@
         .message-col { margin-top: 16px; }
         .skipped-grid { grid-template-columns: 1fr; }
         .user-form, .user-row { grid-template-columns: 1fr; align-items: stretch; }
+        .updates-heading, .update-review-top { flex-direction: column; }
+        .update-status-flow { grid-template-columns: 1fr; }
+        .update-arrow { transform: rotate(90deg); }
+        .update-review-actions { justify-content: stretch; }
+        .update-review-actions .btn { flex: 1; }
       }
       @media (min-width: 761px) and (max-width: 920px) {
         .toolbar { grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -267,6 +289,7 @@
       <section class="panel" id="toolPanel">
         <div class="mode-switch" aria-label="Tool mode">
           <button class="mode-btn active" data-mode="miner">Miner Nudge</button>
+          <button class="mode-btn" data-mode="updates">Miner Updates <span class="mode-count" id="minerUpdatesBadge" hidden>0</span></button>
           <button class="mode-btn" data-mode="confirmation">For Confirmation</button>
           <button class="mode-btn" data-mode="audit">Audit Trail</button>
           <button class="mode-btn" data-mode="users">Users</button>
@@ -309,6 +332,10 @@
         <div class="confirmation-intro" id="auditIntro" hidden>
           <strong>Activity Audit Trail</strong>
           Review who selected an IMT queue, copied contact details or messages, changed sent tracking, and updated the centralized Sheet.
+        </div>
+        <div class="confirmation-intro" id="updatesIntro" hidden>
+          <strong>Miner-submitted updates</strong>
+          Review proposed seeker status changes for your IMT. Approving writes the verified update to Harvest; returning sends it back to the Miner with your correction note.
         </div>
         <div class="dashboard-insight" id="dashboardInsight"><span class="insight-icon">!</span><div><strong id="insightLead">Sign in to view progress.</strong><span id="insightDetail"></span></div></div>
         <div class="performance-layout" id="minerDashboard">
@@ -361,6 +388,13 @@
       </section>
 
       <div id="notice"></div>
+      <section class="panel" id="updatesPanel" hidden>
+        <div class="updates-heading">
+          <div><h2>Updates waiting for IMT approval</h2><p id="updatesSummary">No pending Miner updates.</p></div>
+          <span class="pill" id="updatesAssignment">MR</span>
+        </div>
+        <div class="updates-list" id="minerUpdatesList"></div>
+      </section>
       <section class="panel" id="auditPanel" hidden>
         <h2 style="margin:0;color:var(--ink);font-size:18px;">Recorded Activity</h2>
         <div class="audit-summary" id="auditSummary">No audit records yet.</div>
@@ -466,6 +500,7 @@
       let copiedMessage = '';
       let copiedNumber = '';
       let dirtySeekers = new Set();
+      let minerUpdates = [];
       let filter = 'remaining';
 
       const $ = (id) => document.getElementById(id);
@@ -494,6 +529,7 @@
         copiedMessage = '';
         copiedNumber = '';
         dirtySeekers = new Set();
+        minerUpdates = [];
         showNotice('', '');
       }
 
@@ -741,6 +777,17 @@
       function escapeHtml(text) {
         return String(text).replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[char]));
       }
+      function relativeAge(value) {
+        const timestamp = Date.parse(value);
+        if (!Number.isFinite(timestamp)) return 'recently';
+        const minutes = Math.max(0, Math.floor((Date.now() - timestamp) / 60000));
+        if (minutes < 1) return 'just now';
+        if (minutes < 60) return `${minutes} minute${minutes === 1 ? '' : 's'} ago`;
+        const hours = Math.floor(minutes / 60);
+        if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'} ago`;
+        const days = Math.floor(hours / 24);
+        return `${days} day${days === 1 ? '' : 's'} ago`;
+      }
       function minerKey(name) {
         return titleCase(name).toLowerCase().replace(/\s+/g, ' ').trim();
       }
@@ -781,7 +828,7 @@
           currentMode = 'confirmation';
         } else if (currentUser.role === 'admin' && currentUser.imtAssignment) {
           selectedImt = currentUser.imtAssignment;
-        } else if (!['miner', 'confirmation', 'audit', 'users'].includes(currentMode)) {
+        } else if (!['miner', 'updates', 'confirmation', 'audit', 'users'].includes(currentMode)) {
           currentMode = 'miner';
         }
         if (currentUser.mustChangePassword) {
@@ -1349,6 +1396,39 @@
         }
         return { ...result, auditWarning };
       }
+      function renderMinerUpdates() {
+        $('updatesAssignment').textContent = selectedImt;
+        $('updatesSummary').textContent = minerUpdates.length
+          ? `${minerUpdates.length} update${minerUpdates.length === 1 ? '' : 's'} need a decision. Oldest submissions appear first.`
+          : `No Miner updates are waiting for ${selectedImt}.`;
+        $('minerUpdatesBadge').textContent = minerUpdates.length;
+        $('minerUpdatesBadge').hidden = minerUpdates.length === 0;
+        $('minerUpdatesList').innerHTML = minerUpdates.length ? minerUpdates.map((update) => `
+          <article class="update-review-card">
+            <div class="update-review-top">
+              <div>
+                <div class="update-review-name">${escapeHtml(update.seeker?.id || '')} - ${escapeHtml(update.seeker?.name || 'Unknown seeker')}</div>
+                <div class="update-review-meta">Submitted by <strong>${escapeHtml(update.miner?.name || 'Unknown Miner')}</strong> ${escapeHtml(relativeAge(update.createdAt))}${update.seeker?.tab ? ` · ${escapeHtml(update.seeker.tab)} row ${escapeHtml(update.seeker.row || '')}` : ''}</div>
+              </div>
+              <span class="pill">${escapeHtml(update.assignment || selectedImt)}</span>
+            </div>
+            <div class="update-status-flow" aria-label="Current and proposed placement status">
+              <div class="update-status-box">Current status<strong>${escapeHtml(update.seeker?.currentStatus || '')} · ${escapeHtml(update.seeker?.currentStatusLabel || '')}</strong></div>
+              <div class="update-arrow" aria-hidden="true">→</div>
+              <div class="update-status-box proposed">Miner proposes<strong>${escapeHtml(update.status || '')} · ${escapeHtml(update.statusLabel || '')}</strong></div>
+            </div>
+            <div class="update-context">
+              ${update.leader ? `<div><strong>Endorsed to:</strong> ${escapeHtml(update.leader)}</div>` : ''}
+              ${update.note ? `<div><strong>Miner note:</strong> ${escapeHtml(update.note)}</div>` : '<div class="subline">No additional note supplied.</div>'}
+            </div>
+            <div class="update-review-actions">
+              ${update.hasProof ? `<a class="btn" href="/api/miner-updates?action=proof&amp;assignment=${encodeURIComponent(selectedImt)}&amp;id=${encodeURIComponent(update.id)}" target="_blank" rel="noopener">View attendance proof</a>` : ''}
+              <button class="btn danger" type="button" data-action="return-miner-update" data-id="${escapeHtml(update.id)}">Return to Miner</button>
+              <button class="btn green" type="button" data-action="approve-miner-update" data-id="${escapeHtml(update.id)}">Approve &amp; sync</button>
+            </div>
+          </article>
+        `).join('') : '<div class="empty">You are all caught up. New Miner submissions for this IMT will appear here.</div>';
+      }
       function render() {
         const sentMiners = miners.filter((miner) => sent.has(miner.id));
         const totalSeekers = miners.reduce((sum, miner) => sum + miner.seekers.length, 0);
@@ -1358,27 +1438,30 @@
         const isConfirmation = currentMode === 'confirmation';
         const isAudit = currentMode === 'audit';
         const isUsers = currentMode === 'users';
+        const isUpdates = currentMode === 'updates';
         const isAdmin = currentUser?.role === 'admin';
         const isSignedIn = Boolean(accessToken && currentUser);
         $('toolPanel').hidden = !isSignedIn;
         document.querySelectorAll('.mode-btn').forEach((btn) => {
           const allowed = !currentUser ? btn.dataset.mode === 'miner'
             : isAdmin
-            || (currentUser.role === 'confirmation' ? btn.dataset.mode === 'confirmation' : btn.dataset.mode === 'miner');
+            || (currentUser.role === 'confirmation' ? btn.dataset.mode === 'confirmation' : ['miner', 'updates'].includes(btn.dataset.mode));
           btn.hidden = !allowed;
           btn.classList.toggle('active', btn.dataset.mode === currentMode);
         });
-        $('minerControls').hidden = !isSignedIn || isConfirmation || isAudit || isUsers;
-        $('minerDashboard').hidden = !isSignedIn || isAudit || isUsers;
-        $('dashboardInsight').hidden = !isSignedIn || isConfirmation || isAudit || isUsers;
-        $('analyticsDashboard').hidden = !isSignedIn || isConfirmation || isAudit || isUsers;
+        $('minerControls').hidden = !isSignedIn || isConfirmation || isAudit || isUsers || isUpdates;
+        $('minerDashboard').hidden = !isSignedIn || isAudit || isUsers || isUpdates;
+        $('dashboardInsight').hidden = !isSignedIn || isConfirmation || isAudit || isUsers || isUpdates;
+        $('analyticsDashboard').hidden = !isSignedIn || isConfirmation || isAudit || isUsers || isUpdates;
         $('confirmationIntro').hidden = !isConfirmation;
         $('auditIntro').hidden = !isAudit;
-        $('queueMetrics').hidden = !isSignedIn || isAudit || isUsers;
-        $('queueProgress').hidden = !isSignedIn || isAudit || isUsers;
+        $('updatesIntro').hidden = !isUpdates;
+        $('queueMetrics').hidden = !isSignedIn || isAudit || isUsers || isUpdates;
+        $('queueProgress').hidden = !isSignedIn || isAudit || isUsers || isUpdates;
+        $('updatesPanel').hidden = !isUpdates || !isSignedIn;
         $('auditPanel').hidden = !isAudit || !accessToken;
         $('usersPanel').hidden = !isUsers || !accessToken || !isAdmin;
-        $('cards').hidden = !isSignedIn || isAudit || isUsers;
+        $('cards').hidden = !isSignedIn || isAudit || isUsers || isUpdates;
         $('adminOverview').hidden = !(isAdmin && currentMode === 'miner' && accessToken);
         const imtSort = $('imtSortSelect')?.value || 'rate';
         $('adminOverviewGrid').innerHTML = Object.values(reportByImt).sort((a, b) => imtSort === 'volume'
@@ -1387,7 +1470,7 @@
           const rate = item.total ? Math.round(item.placed / item.total * 100) : 0;
           return `<div class="imt-row"><strong class="imt-code">${escapeHtml(item.code)}</strong><div class="imt-track" aria-label="${escapeHtml(item.code)} placement progress"><div class="imt-fill" style="width:${rate}%"></div></div><strong class="imt-rate">${rate}%</strong><span class="imt-volume">${item.placed} / ${item.total}</span></div>`;
         }).join('');
-        $('imtSelect').disabled = isConfirmation || isAudit || !accessToken || imtOptions.length === 0 || currentUser?.role === 'imt';
+        $('imtSelect').disabled = isConfirmation || isAudit || isUpdates || !accessToken || imtOptions.length === 0 || currentUser?.role === 'imt';
         $('imtSelect').innerHTML = (imtOptions.length ? imtOptions : [selectedImt]).map((imt) => `<option value="${escapeHtml(imt)}"${imt === selectedImt ? ' selected' : ''}>${escapeHtml(imt)}</option>`).join('');
         $('fromMonthSelect').disabled = isConfirmation || !accessToken || monthTabs.length === 0;
         $('toMonthSelect').disabled = isConfirmation || !accessToken || monthTabs.length === 0;
@@ -1464,7 +1547,7 @@
         document.querySelectorAll('.tab').forEach((btn) => btn.classList.toggle('active', btn.dataset.filter === filter));
         const visible = miners.filter((miner) => filter === 'sent' ? sent.has(miner.id) : filter === 'remaining' ? !sent.has(miner.id) : true);
         $('cards').innerHTML = visible.length ? visible.map(cardHtml).join('') : `<div class="card empty">No ${isConfirmation ? 'PCs' : 'miners'} in this view.</div>`;
-        $('skippedPanel').hidden = !isSignedIn || isAudit || isUsers || skipped.length === 0;
+        $('skippedPanel').hidden = !isSignedIn || isAudit || isUsers || isUpdates || skipped.length === 0;
         $('skippedSummary').textContent = isConfirmation ? `Skipped For confirmation rows (${skipped.length})` : `Skipped / excluded ${selectedImt} rows (${skipped.length})`;
         $('skippedGrid').innerHTML = skipped.map((row) => `
           <div class="skipped-item">
@@ -1473,6 +1556,7 @@
             ${escapeHtml(row.tab)} row ${row.rowIdx}: ${escapeHtml(row.reason)}
           </div>
         `).join('');
+        renderMinerUpdates();
       }
       function cardHtml(miner) {
         const counts = miner.seekers.reduce((acc, seeker) => {
@@ -1603,6 +1687,24 @@
           await loadManagedUsers();
           return true;
         }
+        if (currentMode === 'updates') {
+          showNotice('', '');
+          $('minerUpdatesList').innerHTML = '<div class="empty">Loading Miner-submitted updates...</div>';
+          try {
+            const result = await apiRequest(`/api/miner-updates?assignment=${encodeURIComponent(selectedImt)}`);
+            minerUpdates = result.updates || [];
+            render();
+            showNotice('success', minerUpdates.length
+              ? `Loaded ${minerUpdates.length} pending Miner update${minerUpdates.length === 1 ? '' : 's'} for ${selectedImt}.`
+              : `No pending Miner updates for ${selectedImt}.`);
+            return true;
+          } catch (error) {
+            minerUpdates = [];
+            render();
+            showNotice('error', error.message);
+            return false;
+          }
+        }
         let loaded = false;
         showNotice('', '');
         $('cards').innerHTML = `<div class="card empty">Loading ${currentMode === 'audit' ? 'the audit trail' : currentMode === 'confirmation' ? 'Prayer Coaches from the For confirmation tab' : 'miners from Google Sheets'}...</div>`;
@@ -1665,6 +1767,38 @@
             await apiRequest('/api/admin/users', { method: 'PATCH', body: JSON.stringify({ userId: target.dataset.userId, active: target.dataset.active !== 'true' }) });
             await loadManagedUsers();
           } catch (error) { showNotice('error', error.message); }
+          return;
+        }
+        if (['approve-miner-update', 'return-miner-update'].includes(target.dataset.action)) {
+          const update = minerUpdates.find((item) => item.id === target.dataset.id);
+          if (!update) return;
+          const decision = target.dataset.action === 'approve-miner-update' ? 'approve' : 'return';
+          let note = '';
+          if (decision === 'return') {
+            note = window.prompt(`What should ${update.miner?.name || 'the Miner'} correct before resubmitting?`, '')?.trim() || '';
+            if (!note) return;
+          } else if (!window.confirm(`Approve ${update.seeker?.id || ''} - ${update.seeker?.name || 'this seeker'} as ${update.status} and sync it to Harvest?`)) {
+            return;
+          }
+          try {
+            target.disabled = true;
+            target.textContent = decision === 'approve' ? 'Approving...' : 'Returning...';
+            const result = await apiRequest('/api/miner-updates', {
+              method: 'POST',
+              body: JSON.stringify({ id: update.id, assignment: selectedImt, decision, note }),
+            });
+            await loadQueue();
+            const message = decision === 'approve'
+              ? result.harvest?.state === 'synced'
+                ? `${update.seeker?.name || 'Seeker'} approved and synced to Harvest.`
+                : `${update.seeker?.name || 'Seeker'} approved. Harvest sync is pending: ${result.harvest?.reason || 'retry required'}`
+              : `${update.seeker?.name || 'Update'} returned to ${update.miner?.name || 'the Miner'} for correction.`;
+            showNotice(result.auditWarning ? 'error' : 'success', result.auditWarning ? `${message} ${result.auditWarning}` : message);
+          } catch (error) {
+            target.disabled = false;
+            target.textContent = decision === 'approve' ? 'Approve & sync' : 'Return to Miner';
+            showNotice('error', error.message);
+          }
           return;
         }
         if (target.dataset.action === 'sync-miner' && currentMode === 'miner') {
@@ -1763,7 +1897,7 @@
       }, true);
       document.querySelectorAll('.tab').forEach((btn) => btn.addEventListener('click', () => { filter = btn.dataset.filter; render(); }));
       document.querySelectorAll('.mode-btn').forEach((btn) => btn.addEventListener('click', () => {
-        if (currentUser?.role === 'imt' && btn.dataset.mode !== 'miner') return;
+        if (currentUser?.role === 'imt' && !['miner', 'updates'].includes(btn.dataset.mode)) return;
         if (currentUser?.role === 'confirmation' && btn.dataset.mode !== 'confirmation') return;
         if (btn.dataset.mode === 'users' && currentUser?.role !== 'admin') return;
         if (currentMode === 'users' && btn.dataset.mode !== 'users') {

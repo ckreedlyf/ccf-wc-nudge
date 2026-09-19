@@ -26,6 +26,7 @@ const expectedFiles = [
   'api/auth/change-password.js',
   'api/admin/users.js',
   'api/sheets.js',
+  'api/miner-updates.js',
   'supabase/migrations/202609120001_app_profiles.sql',
 ];
 for (const file of expectedFiles) {
