@@ -447,13 +447,13 @@
     <div class="modal-backdrop" id="documentationModal" hidden>
       <section class="modal documentation-modal" role="dialog" aria-modal="true" aria-labelledby="documentationTitle">
         <div class="documentation-modal-head">
-          <div><h2 id="documentationTitle">Placement documentation</h2><div class="documentation-summary" id="documentationSummary"></div></div>
+          <div><h2 id="documentationTitle">Seeker update documentation</h2><div class="documentation-summary" id="documentationSummary"></div></div>
           <button class="btn" type="button" id="closeDocumentationBtn" aria-label="Close documentation">X</button>
         </div>
-        <div class="documentation-endorsement" id="documentationEndorsement"></div>
+        <div class="documentation-endorsement" id="documentationEndorsement" hidden></div>
         <div class="documentation-image-wrap">
-          <div class="documentation-image-status" id="documentationImageStatus">Loading attendance photo...</div>
-          <img class="documentation-image" id="documentationImage" alt="First DGroup attendance documentation" hidden>
+          <div class="documentation-image-status" id="documentationImageStatus">Loading documentation...</div>
+          <img class="documentation-image" id="documentationImage" alt="Seeker update documentation" hidden>
         </div>
         <div class="actions"><a class="btn" id="openDocumentationLink" target="_blank" rel="noopener">Open original image</a></div>
       </section>
@@ -728,13 +728,15 @@
         const proposed = seeker.minerCompanionStatus;
         const label = STATUS_LABELS[proposed] || proposed;
         const isPlacement = ['6a', '6b', '6c'].includes(proposed);
+        const supportsDocumentation = isPlacement || ['3a', '8'].includes(proposed);
         const statusText = seeker.status === proposed
           ? seeker.minerCompanionHarvestSaved
             ? 'Harvest saved this status; Miner Companion acknowledgement is still pending.'
             : 'This proposed status is not yet in Harvest. Use “Sync all updates” to apply it.'
           : `The proposal has not been applied. Current selection: ${seeker.status} ${STATUS_LABELS[seeker.status] || seeker.status}.`;
-        const documentation = isPlacement && seeker.minerCompanionHasProof && seeker.minerCompanionProofUpdateId
-          ? `<br><button class="documentation-link" type="button" data-action="view-miner-documentation" data-seeker-key="${escapeHtml(seeker.rowKey)}">View documentation for confirmation</button>`
+        const documentationLabel = proposed === '3a' ? 'View contact screenshot' : proposed === '8' ? 'View follow-up documentation' : 'View documentation for confirmation';
+        const documentation = supportsDocumentation && seeker.minerCompanionHasProof && seeker.minerCompanionProofUpdateId
+          ? `<br><button class="documentation-link" type="button" data-action="view-miner-documentation" data-seeker-key="${escapeHtml(seeker.rowKey)}">${documentationLabel}</button>`
           : '';
         return `<div class="miner-companion-note" role="status"><strong>Miner Companion update</strong> from ${escapeHtml(seeker.minerCompanionMiner || 'a Miner')} (${escapeHtml(relativeAge(seeker.minerCompanionSubmittedAt))}): proposes <strong>${escapeHtml(proposed)} ${escapeHtml(label)}</strong>. ${escapeHtml(statusText)}${seeker.minerCompanionNote ? `<br><span>Miner note: ${escapeHtml(seeker.minerCompanionNote)}</span>` : ''}${documentation}</div>`;
       }
@@ -743,20 +745,24 @@
         $('documentationImage').hidden = true;
         $('documentationImage').removeAttribute('src');
         $('documentationImageStatus').hidden = false;
-        $('documentationImageStatus').textContent = 'Loading attendance photo...';
+        $('documentationImageStatus').textContent = 'Loading documentation...';
       }
       function openDocumentation(seeker) {
-        if (!seeker?.minerCompanionProofUpdateId || !['6a', '6b', '6c'].includes(seeker.minerCompanionStatus)) {
-          throw new Error('No placement documentation is available for this seeker update.');
+        const status = seeker?.minerCompanionStatus;
+        const isPlacement = ['6a', '6b', '6c'].includes(status);
+        if (!seeker?.minerCompanionProofUpdateId || !(isPlacement || ['3a', '8'].includes(status))) {
+          throw new Error('No documentation is available for this seeker update.');
         }
         const proofUrl = `/api/miner-updates?action=proof&assignment=${encodeURIComponent(selectedImt)}&id=${encodeURIComponent(seeker.minerCompanionProofUpdateId)}`;
-        $('documentationTitle').textContent = `Placement documentation · ${seekerLabel(seeker)}`;
+        const title = status === '3a' ? 'Contact documentation' : status === '8' ? 'Unsuccessful placement documentation' : 'Placement documentation';
+        $('documentationTitle').textContent = `${title} · ${seekerLabel(seeker)}`;
         $('documentationSummary').textContent = `${seeker.minerCompanionMiner || 'Miner'} proposes ${seeker.minerCompanionStatus} ${STATUS_LABELS[seeker.minerCompanionStatus] || seeker.minerCompanionStatus}.`;
-        $('documentationEndorsement').innerHTML = `<strong>Endorsed to:</strong> ${escapeHtml(seeker.minerCompanionLeader || 'Not specified')}`;
+        $('documentationEndorsement').hidden = !isPlacement;
+        $('documentationEndorsement').innerHTML = isPlacement ? `<strong>Endorsed to:</strong> ${escapeHtml(seeker.minerCompanionLeader || 'Not specified')}` : '';
         $('openDocumentationLink').href = proofUrl;
         $('documentationImage').hidden = true;
         $('documentationImageStatus').hidden = false;
-        $('documentationImageStatus').textContent = 'Loading attendance photo...';
+        $('documentationImageStatus').textContent = 'Loading documentation...';
         $('documentationImage').onload = () => {
           $('documentationImageStatus').hidden = true;
           $('documentationImage').hidden = false;
