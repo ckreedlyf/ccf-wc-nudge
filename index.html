@@ -294,7 +294,7 @@
     </header>
 
     <main class="wrap">
-      <section class="panel" id="toolPanel">
+      <section class="panel" id="toolPanel" hidden>
         <div class="mode-switch" aria-label="Tool mode">
           <button class="mode-btn active" data-mode="miner">Miner Nudge</button>
           <button class="mode-btn" data-mode="confirmation">For Confirmation</button>
@@ -367,7 +367,7 @@
         </div>
       </section>
 
-      <section class="queue-section" id="queueMetrics">
+      <section class="queue-section" id="queueMetrics" hidden>
         <div class="queue-heading"><div><h2>Today's Nudge Queue</h2><p>Miners who need follow-up in the selected status scope.</p></div><strong id="queueCompletion">0 of 0 completed</strong></div>
         <div class="metrics">
           <div class="metric"><div class="metric-label" id="minersLabel">Queue Miners</div><div class="metric-value" id="minersMetric">0</div></div>
@@ -377,7 +377,7 @@
         </div>
       </section>
 
-      <section class="panel" id="queueProgress">
+      <section class="panel" id="queueProgress" hidden>
         <div class="progress-head"><span>Today's Queue Progress</span><span id="progressText">0%</span></div>
         <div class="track"><div class="bar" id="progressBar"></div></div>
         <div class="controls">
@@ -424,7 +424,7 @@
           <button class="btn primary" type="submit">Sign in</button>
         </form>
       </section>
-      <section class="cards" id="cards"></section>
+      <section class="cards" id="cards" hidden></section>
       <details class="panel" id="skippedPanel" hidden>
         <summary id="skippedSummary">Skipped MR rows</summary>
         <div class="skipped-grid" id="skippedGrid"></div>
@@ -1554,6 +1554,8 @@
         const isAdmin = currentUser?.role === 'admin';
         const isSignedIn = Boolean(accessToken && currentUser);
         $('toolPanel').hidden = !isSignedIn;
+        $('queueMetrics').hidden = !isSignedIn || isAudit || isUsers;
+        $('queueProgress').hidden = !isSignedIn || isAudit || isUsers;
         document.querySelectorAll('.mode-btn').forEach((btn) => {
           const allowed = !currentUser ? btn.dataset.mode === 'miner'
             : isAdmin
