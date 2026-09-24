@@ -1654,7 +1654,12 @@
         `).join('') : '<tr><td colspan="8" class="empty">No recorded activity yet.</td></tr>';
         document.querySelectorAll('.tab').forEach((btn) => btn.classList.toggle('active', btn.dataset.filter === filter));
         const visible = miners.filter((miner) => filter === 'sent' ? sent.has(miner.id) : filter === 'remaining' ? !sent.has(miner.id) : true);
-        $('cards').innerHTML = visible.length ? visible.map(cardHtml).join('') : `<div class="card empty">No ${isConfirmation ? 'PCs' : 'miners'} in this view.</div>`;
+        const emptyQueueMessage = filter === 'remaining' && miners.length
+          ? `All ${miners.length} ${isConfirmation ? 'PCs' : 'miners'} in this range are marked sent. Choose All or Sent to review them.`
+          : filter === 'sent' && miners.length
+            ? `No ${isConfirmation ? 'PCs' : 'miners'} are marked sent in this range yet.`
+            : `No ${isConfirmation ? 'PCs' : 'miners'} match the selected range and status scope.`;
+        $('cards').innerHTML = visible.length ? visible.map(cardHtml).join('') : `<div class="card empty">${emptyQueueMessage}</div>`;
         $('skippedPanel').hidden = !isSignedIn || isAudit || isUsers || skipped.length === 0;
         $('skippedSummary').textContent = isConfirmation ? `Skipped For confirmation rows (${skipped.length})` : `Skipped / excluded ${selectedImt} rows (${skipped.length})`;
         $('skippedGrid').innerHTML = skipped.map((row) => `
@@ -1825,6 +1830,10 @@
             sessionAuditWarning = `Session loaded, but sign-in auditing failed: ${error.message}`;
           }
           sent = new Set(JSON.parse(localStorage.getItem(sentStorageKey()) || '[]'));
+          const currentMinerIds = new Set(miners.map((miner) => miner.id));
+          sent = new Set([...sent].filter((id) => currentMinerIds.has(id)));
+          localStorage.setItem(sentStorageKey(), JSON.stringify([...sent]));
+          if (miners.length && filter === 'remaining' && miners.every((miner) => sent.has(miner.id))) filter = 'all';
           expanded = new Set(miners.slice(0, 1).map((miner) => miner.id));
           loaded = true;
           const loadedMessage = currentMode === 'audit'
