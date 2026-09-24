@@ -732,7 +732,7 @@
         const statusText = seeker.status === proposed
           ? seeker.minerCompanionHarvestSaved
             ? 'Harvest saved this status; Miner Companion acknowledgement is still pending.'
-            : 'This proposed status is not yet in Harvest. Use “Sync all updates” to apply it.'
+            : 'This proposed status is not yet in Harvest. Mark the Miner as sent to apply it.'
           : `The proposal has not been applied. Current selection: ${seeker.status} ${STATUS_LABELS[seeker.status] || seeker.status}.`;
         const documentationLabel = proposed === '3a' ? 'View contact screenshot' : proposed === '8' ? 'View follow-up documentation' : 'View documentation for confirmation';
         const documentation = supportsDocumentation && seeker.minerCompanionHasProof && seeker.minerCompanionProofUpdateId
@@ -1316,13 +1316,10 @@
       }
       function updateMinerSyncUi(miner) {
         const edited = minerDirtySeekers(miner).length;
-        const button = document.querySelector(`[data-action="sync-miner"][data-id="${CSS.escape(miner.id)}"]`);
         const state = document.querySelector(`[data-miner-sync-state="${CSS.escape(miner.id)}"]`);
-        if (button) {
-          button.disabled = edited === 0;
-          button.textContent = edited ? `Sync all updates (${edited})` : 'All updates synced';
-        }
-        if (state) state.textContent = edited ? `${edited} seeker${edited === 1 ? '' : 's'} ready to sync` : '';
+        if (state) state.textContent = edited
+          ? `${edited} seeker${edited === 1 ? '' : 's'} will sync when you mark sent.`
+          : 'No unsynced seeker edits.';
       }
       function markSeekerDirty(seeker) {
         const changed = seeker.status !== seeker.syncedStatus
@@ -1695,8 +1692,7 @@
               <div class="chev">⌄</div>
             </button>
             ${isConfirmation ? '' : `<div class="miner-sync-strip">
-              <div class="miner-sync-copy"><strong>Seeker updates</strong><span data-miner-sync-state="${escapeHtml(miner.id)}">${editedCount ? `${editedCount} seeker${editedCount === 1 ? '' : 's'} ready to sync` : 'Edit status, DLT, or remarks below.'}</span></div>
-              <button class="btn primary" type="button" data-action="sync-miner" data-id="${escapeHtml(miner.id)}"${editedCount ? '' : ' disabled'}>${editedCount ? `Sync all updates (${editedCount})` : 'All updates synced'}</button>
+              <div class="miner-sync-copy"><strong>Seeker updates</strong><span data-miner-sync-state="${escapeHtml(miner.id)}">${editedCount ? `${editedCount} seeker${editedCount === 1 ? '' : 's'} will sync when you mark sent.` : 'Edit status, DLT, or remarks, then mark sent to save.'}</span></div>
             </div>`}
             <div class="card-body">
               <div>
@@ -1846,7 +1842,7 @@
           const companionMessage = currentMode !== 'miner' ? '' : companionError
             ? `Miner Companion updates could not be loaded: ${companionError}`
             : companionResult.total
-              ? `${companionResult.count} seeker status${companionResult.count === 1 ? '' : 'es'} from Miner Companion staged in the queue; ${companionResult.unmatched} update${companionResult.unmatched === 1 ? '' : 's'} could not be matched. Proposed statuses are not in Harvest until you use “Sync all updates”.`
+              ? `${companionResult.count} seeker status${companionResult.count === 1 ? '' : 'es'} from Miner Companion staged in the queue; ${companionResult.unmatched} update${companionResult.unmatched === 1 ? '' : 's'} could not be matched. Proposed statuses are not in Harvest until you mark the Miner as sent.`
               : 'No pending Miner Companion updates for this queue.';
           showNotice(sessionAuditWarning || companionError ? 'error' : 'success', `${sessionAuditWarning || loadedMessage} ${companionMessage}`);
         } catch (error) {
@@ -1893,22 +1889,6 @@
           }
           return;
         }
-        if (target.dataset.action === 'sync-miner' && currentMode === 'miner') {
-          const miner = miners.find((item) => item.id === target.dataset.id);
-          if (!miner) return;
-          try {
-            target.disabled = true;
-            target.textContent = 'Syncing...';
-            const result = await saveMinerUpdates(miner);
-            const successText = `${result.editedSeekers.length} edited seeker${result.editedSeekers.length === 1 ? '' : 's'} for ${miner.name} synced to the Sheet.`;
-            showNotice(result.auditWarning ? 'error' : 'success', result.auditWarning ? `${successText} ${result.auditWarning}` : successText);
-            render();
-          } catch (error) {
-            showNotice('error', error.message);
-            updateMinerSyncUi(miner);
-          }
-          return;
-        }
         const miner = miners.find((item) => item.id === target.dataset.id);
         if (target.dataset.action === 'toggle') {
           expanded.has(target.dataset.id) ? expanded.delete(target.dataset.id) : expanded.add(target.dataset.id);
@@ -1941,14 +1921,32 @@
             return;
           }
           const wasSent = sent.has(miner.id);
+          let syncResult = null;
+          if (!wasSent && currentMode === 'miner' && minerDirtySeekers(miner).length) {
+            try {
+              target.disabled = true;
+              target.textContent = 'Saving updates...';
+              syncResult = await saveMinerUpdates(miner);
+            } catch (error) {
+              showNotice('error', `${miner.name} was not marked sent because the seeker updates could not be saved: ${error.message}`);
+              render();
+              return;
+            }
+          }
           wasSent ? sent.delete(miner.id) : sent.add(miner.id);
           localStorage.setItem(sentStorageKey(), JSON.stringify([...sent]));
           render();
+          let queueAuditWarning = '';
           try {
             await auditQueueAction(wasSent ? 'Marked as unsent' : 'Marked as sent', miner);
           } catch (error) {
-            showNotice('error', `Queue state changed, but the audit entry failed: ${error.message}`);
+            queueAuditWarning = `Queue state changed, but the audit entry failed: ${error.message}`;
           }
+          if (!wasSent && syncResult) {
+            const successText = `${syncResult.editedSeekers.length} edited seeker${syncResult.editedSeekers.length === 1 ? '' : 's'} for ${miner.name} synced before marking sent.`;
+            const warning = [syncResult.auditWarning, queueAuditWarning].filter(Boolean).join(' ');
+            showNotice(warning ? 'error' : 'success', warning ? `${successText} ${warning}` : successText);
+          } else if (queueAuditWarning) showNotice('error', queueAuditWarning);
         }
       });
       document.addEventListener('input', (event) => {
