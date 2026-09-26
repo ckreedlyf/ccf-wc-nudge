@@ -5,9 +5,10 @@
   "scripts": {
     "build": "node -e \"const fs=require('fs');fs.rmSync('dist',{recursive:true,force:true});fs.mkdirSync('dist',{recursive:true});fs.copyFileSync('index.html','dist/index.html');console.log('Static app copied to dist')\"",
     "check": "node scripts/check.mjs",
-    "test": "node scripts/access-control.test.cjs"
+    "test": "node scripts/access-control.test.cjs && node scripts/reporting.test.cjs"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.57.4"
+    "@supabase/supabase-js": "^2.57.4",
+    "pdfkit": "^0.20.2"
   }
 }
