@@ -550,6 +550,57 @@
       const AUDIT_HEADERS = ['Timestamp', 'User Email', 'Action', 'IMT Assignment', 'Targets', 'Rows Updated', 'Sheet Tabs', 'Details'];
       const COMPOUND_NAMES = { 'alyssa jane': 'Alyssa Jane', 'mary grace': 'Mary Grace' };
 
+      // SENT_TODAY_HELPERS_START
+      const APP_TIME_ZONE = 'Asia/Singapore';
+      function calendarKeyInTimeZone(value, timeZone = APP_TIME_ZONE) {
+        const date = value instanceof Date ? value : new Date(value);
+        if (Number.isNaN(date.getTime())) return '';
+        const parts = Object.fromEntries(new Intl.DateTimeFormat('en-US', {
+          timeZone, year: 'numeric', month: '2-digit', day: '2-digit',
+        }).formatToParts(date).filter((part) => part.type !== 'literal').map((part) => [part.type, part.value]));
+        return `${parts.year}-${parts.month}-${parts.day}`;
+      }
+      function validCalendarKey(year, month, day) {
+        const date = new Date(Date.UTC(year, month - 1, day));
+        return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day
+          ? `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+          : '';
+      }
+      function dateLastTouchCalendarKey(value, timeZone = APP_TIME_ZONE) {
+        if (value === null || value === undefined || value === '') return '';
+        if (value instanceof Date) return calendarKeyInTimeZone(value, timeZone);
+        if (typeof value === 'number' && Number.isFinite(value)) {
+          const serialDate = new Date(Date.UTC(1899, 11, 30) + Math.floor(value) * 86400000);
+          return validCalendarKey(serialDate.getUTCFullYear(), serialDate.getUTCMonth() + 1, serialDate.getUTCDate());
+        }
+        const text = String(value).trim();
+        if (!text) return '';
+        const sheetDate = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})(?:\s|$)/);
+        if (sheetDate) {
+          const year = Number(sheetDate[3].length === 2 ? `20${sheetDate[3]}` : sheetDate[3]);
+          return validCalendarKey(year, Number(sheetDate[1]), Number(sheetDate[2]));
+        }
+        const dateOnly = text.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+        if (dateOnly) return validCalendarKey(Number(dateOnly[1]), Number(dateOnly[2]), Number(dateOnly[3]));
+        return calendarKeyInTimeZone(text, timeZone);
+      }
+      function isDateLastTouchToday(dateLastTouch, today = new Date(), timeZone = APP_TIME_ZONE) {
+        const dltKey = dateLastTouchCalendarKey(dateLastTouch, timeZone);
+        return Boolean(dltKey && dltKey === dateLastTouchCalendarKey(today, timeZone));
+      }
+      function minerWasSentToday(miner, today = new Date(), timeZone = APP_TIME_ZONE) {
+        return Boolean(miner?.seekers?.length) && miner.seekers.every((seeker) => isDateLastTouchToday(seeker.lastTouch, today, timeZone));
+      }
+      function queueTodayCounts(queueMiners, today = new Date(), timeZone = APP_TIME_ZONE) {
+        const sent = queueMiners.filter((miner) => minerWasSentToday(miner, today, timeZone)).length;
+        return { queue: queueMiners.length, sent, remaining: queueMiners.length - sent };
+      }
+      function todaySheetDate(today = new Date()) {
+        const [year, month, day] = dateLastTouchCalendarKey(today).split('-');
+        return year ? `${Number(month)}/${Number(day)}/${year}` : '';
+      }
+      // SENT_TODAY_HELPERS_END
+
       let accessToken = '';
       let signedInEmail = '';
       let currentUser = null;
@@ -582,12 +633,12 @@
       let reportPdfUrl = '';
 
       const $ = (id) => document.getElementById(id);
-      $('todayLabel').textContent = new Intl.DateTimeFormat('en-PH', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }).format(new Date());
+      $('todayLabel').textContent = new Intl.DateTimeFormat('en-PH', { timeZone: APP_TIME_ZONE, weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }).format(new Date());
 
       function sentStorageKey() {
         if (currentMode === 'confirmation') return 'sentConfirmationPCs';
         if (currentMode === 'audit') return 'auditTrail';
-        return `sentMiners:${selectedImt}:${selectedFromMonth || 'from'}:${selectedToMonth || 'to'}:${selectedStatusScope}`;
+        return `sentMiners:${todaySheetDate()}:${selectedImt}:${selectedFromMonth || 'from'}:${selectedToMonth || 'to'}:${selectedStatusScope}`;
       }
       function clearGoogleSession() {
         if (reportPdfUrl) URL.revokeObjectURL(reportPdfUrl);
@@ -765,10 +816,6 @@
         if (!selectedMonthTabs.length) return 'the selected range';
         if (selectedMonthTabs.length === 1) return monthLabel(selectedMonthTabs[0]);
         return `${monthLabel(selectedMonthTabs[0])} to ${monthLabel(selectedMonthTabs[selectedMonthTabs.length - 1])}`;
-      }
-      function todaySheetDate() {
-        const now = new Date();
-        return `${now.getMonth() + 1}/${now.getDate()}/${now.getFullYear()}`;
       }
       function normalizeDateCell(value) {
         const text = String(value ?? '').trim();
@@ -1159,7 +1206,7 @@
             const status = extractStatus(row[statusIndex]);
             const statusText = String(row[statusIndex] ?? '').trim();
             const lastTouch = normalizeDateCell(row[dltIndex]);
-            const touchedToday = lastTouch === todaySheetDate();
+            const touchedToday = isDateLastTouchToday(lastTouch);
             const remarks = String(row[remarksIndex] ?? '').trim();
 
             if (PLACED_CODES.has(status)) reports[imt].placed += 1;
@@ -1173,7 +1220,6 @@
             if (imt !== selectedAssignment) return;
             if (!minerName) return skippedRows.push({ tab, rowIdx, minerName: displayMinerName, guestName, reason: 'Missing miner name' });
             const key = minerKey(minerName);
-            if (touchedToday) return skippedRows.push({ tab, rowIdx, minerName: displayMinerName, guestName, reason: `Already touched today (${todaySheetDate()})` });
             const number = normalizeNum(row[10]);
             if (!includedStatuses.has(status)) return skippedRows.push({ tab, rowIdx, minerName: displayMinerName, guestName, reason: `Excluded status ${status || 'blank'}` });
             const gender = genderByMiner.get(`name:${minerKey(minerName)}`) || (number ? genderByMiner.get(`number:${number}`) : '') || '';
@@ -1743,12 +1789,16 @@
         }
       }
       function render() {
-        const sentMiners = miners.filter((miner) => sent.has(miner.id));
+        const isConfirmation = currentMode === 'confirmation';
+        const completedIds = new Set(miners.filter((miner) => isConfirmation ? sent.has(miner.id) : minerWasSentToday(miner)).map((miner) => miner.id));
+        const sentMiners = miners.filter((miner) => completedIds.has(miner.id));
+        const queueCounts = isConfirmation
+          ? { queue: miners.length, sent: sentMiners.length, remaining: miners.length - sentMiners.length }
+          : queueTodayCounts(miners);
         const totalSeekers = miners.reduce((sum, miner) => sum + miner.seekers.length, 0);
-        const progress = miners.length ? Math.round(sentMiners.length / miners.length * 100) : 0;
+        const progress = queueCounts.queue ? Math.round(queueCounts.sent / queueCounts.queue * 100) : 0;
         const report = activeReport || freshReport(selectedImt);
         const placementRate = report.total ? Math.round(report.placed / report.total * 100) : 0;
-        const isConfirmation = currentMode === 'confirmation';
         const isAudit = currentMode === 'audit';
         const isUsers = currentMode === 'users';
         const isReports = currentMode === 'reports';
@@ -1806,7 +1856,7 @@
         $('placedRateNote').textContent = `${placementRate}% success rate`;
         $('followUpRateNote').textContent = `${report.total ? Math.round(report.needsNudge / report.total * 100) : 0}% of assigned`;
         $('todayActionMetric').textContent = miners.length;
-        $('todayActionNote').textContent = `${sentMiners.length} of ${miners.length} miners nudged`;
+        $('todayActionNote').textContent = `${queueCounts.sent} of ${queueCounts.queue} miners nudged`;
         $('placementNote').textContent = isConfirmation
           ? `${report.total} guest${report.total === 1 ? '' : 's'} queued for PC confirmation.`
           : `${report.placed} placed/connected out of ${report.total} assigned seekers in ${selectedRangeLabel()}.`;
@@ -1825,9 +1875,9 @@
         $('remainingLabel').textContent = isConfirmation ? 'Remaining PCs' : 'Remaining';
         $('minersMetric').textContent = miners.length;
         $('seekersMetric').textContent = totalSeekers;
-        $('sentMetric').textContent = sentMiners.length;
-        $('remainingMetric').textContent = miners.length - sentMiners.length;
-        $('queueCompletion').textContent = `${sentMiners.length} of ${miners.length} completed`;
+        $('sentMetric').textContent = queueCounts.sent;
+        $('remainingMetric').textContent = queueCounts.remaining;
+        $('queueCompletion').textContent = `${queueCounts.sent} of ${queueCounts.queue} completed`;
         $('progressText').textContent = `${progress}%`;
         $('progressBar').style.width = `${progress}%`;
         $('updateBtn').textContent = isConfirmation ? '✓ Update status for marked sent' : '✓ Update Column N for marked sent';
@@ -1857,11 +1907,11 @@
           </tr>
         `).join('') : '<tr><td colspan="8" class="empty">No recorded activity yet.</td></tr>';
         document.querySelectorAll('.tab').forEach((btn) => btn.classList.toggle('active', btn.dataset.filter === filter));
-        const visible = miners.filter((miner) => filter === 'sent' ? sent.has(miner.id) : filter === 'remaining' ? !sent.has(miner.id) : true);
+        const visible = miners.filter((miner) => filter === 'sent' ? completedIds.has(miner.id) : filter === 'remaining' ? !completedIds.has(miner.id) : true);
         const emptyQueueMessage = filter === 'remaining' && miners.length
-          ? `All ${miners.length} ${isConfirmation ? 'PCs' : 'miners'} in this range are marked sent. Choose All or Sent to review them.`
+          ? `All ${miners.length} ${isConfirmation ? 'PCs' : 'miners'} in this range were sent today. Choose All or Sent to review them.`
           : filter === 'sent' && miners.length
-            ? `No ${isConfirmation ? 'PCs' : 'miners'} are marked sent in this range yet.`
+            ? `No ${isConfirmation ? 'PCs are marked sent' : 'miners have a DLT of today'} in this range yet.`
             : `No ${isConfirmation ? 'PCs' : 'miners'} match the selected range and status scope.`;
         $('cards').innerHTML = visible.length ? visible.map(cardHtml).join('') : `<div class="card empty">${emptyQueueMessage}</div>`;
         $('skippedPanel').hidden = !isSignedIn || isAudit || isUsers || skipped.length === 0;
@@ -1879,15 +1929,16 @@
           if (seeker.status) acc[seeker.status] = (acc[seeker.status] || 0) + 1;
           return acc;
         }, {});
-        const isSent = sent.has(miner.id);
         const isConfirmation = currentMode === 'confirmation';
+        const isMarked = sent.has(miner.id);
+        const isSent = isConfirmation ? isMarked : minerWasSentToday(miner);
         const editedCount = isConfirmation ? 0 : minerDirtySeekers(miner).length;
         return `
           <article class="card ${isSent ? 'sent' : ''} ${expanded.has(miner.id) ? 'open' : ''}" data-id="${miner.id}">
             <button class="card-head" data-action="toggle" data-id="${miner.id}">
               <div class="avatar">${initials(miner.name)}</div>
               <div class="grow">
-                <div class="name-row"><div class="miner-name">${escapeHtml(miner.name)}</div>${isConfirmation ? '<span class="pill">PC</span>' : `<span class="pill">Assigned to ${escapeHtml(miner.assignment)}</span>`}${isSent ? '<span class="pill">Sent ✓</span>' : ''}</div>
+                <div class="name-row"><div class="miner-name">${escapeHtml(miner.name)}</div>${isConfirmation ? '<span class="pill">PC</span>' : `<span class="pill">Assigned to ${escapeHtml(miner.assignment)}</span>`}${isSent ? `<span class="pill">${isConfirmation ? 'Sent' : 'Sent today'} ✓</span>` : ''}</div>
                 <div class="subline"><span>${escapeHtml(miner.number)}</span><span>/</span><span>${miner.seekers.length} ${isConfirmation ? 'guest' : 'seeker'}${miner.seekers.length === 1 ? '' : 's'}</span></div>
                 <div class="badges">
                   ${isConfirmation ? `<button class="copy-mini" data-action="copy-number" data-id="${miner.id}">${copiedNumber === miner.id ? '✓ Number copied!' : 'Copy number'}</button>` : ''}
@@ -1942,7 +1993,9 @@
                     ? `<button class="btn primary" data-action="copy-message" data-id="${miner.id}">${copiedMessage === miner.id ? '✓ Message copied!' : 'Copy message'}</button>
                        <button class="btn" data-action="copy-number" data-id="${miner.id}">${copiedNumber === miner.id ? '✓ Number copied!' : 'Copy number'}</button>`
                     : `<button class="btn primary" data-action="send-viber" data-id="${miner.id}">Send to Viber</button>`}
-                  <button class="btn ${isSent ? '' : 'green'}" data-action="toggle-sent" data-id="${miner.id}">${isSent ? '↩ Mark unsent' : 'Mark as sent'}</button>
+                  ${!isConfirmation && isSent
+                    ? '<button class="btn" disabled>Sent today ✓</button>'
+                    : `<button class="btn ${isMarked ? '' : 'green'}" data-action="toggle-sent" data-id="${miner.id}">${isMarked ? '↩ Unmark' : 'Mark as sent'}</button>`}
                 </div>
               </div>
             </div>
@@ -2039,9 +2092,10 @@
           }
           sent = new Set(JSON.parse(localStorage.getItem(sentStorageKey()) || '[]'));
           const currentMinerIds = new Set(miners.map((miner) => miner.id));
-          sent = new Set([...sent].filter((id) => currentMinerIds.has(id)));
+          const minerById = new Map(miners.map((miner) => [miner.id, miner]));
+          sent = new Set([...sent].filter((id) => currentMinerIds.has(id) && (currentMode === 'confirmation' || !minerWasSentToday(minerById.get(id)))));
           localStorage.setItem(sentStorageKey(), JSON.stringify([...sent]));
-          if (miners.length && filter === 'remaining' && miners.every((miner) => sent.has(miner.id))) filter = 'all';
+          if (miners.length && filter === 'remaining' && miners.every((miner) => currentMode === 'confirmation' ? sent.has(miner.id) : minerWasSentToday(miner))) filter = 'all';
           expanded = new Set(miners.slice(0, 1).map((miner) => miner.id));
           loaded = true;
           const loadedMessage = currentMode === 'audit'
