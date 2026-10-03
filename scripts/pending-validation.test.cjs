@@ -10,8 +10,8 @@ assert.ok(validationHelpers, 'Miner validation helper block must remain testable
 
 const context = { Date, Intl, Map, Set, String, Number, Array };
 vm.createContext(context);
-vm.runInContext(`${dateHelpers[1]}${validationHelpers[1]}; this.helpers = { groupPendingMinerUpdates, pendingProofRequired, minerActionSheetDate, appendMinerValidationRemark, validationRemarkMarker };`, context);
-const { groupPendingMinerUpdates, pendingProofRequired, minerActionSheetDate, appendMinerValidationRemark, validationRemarkMarker } = context.helpers;
+vm.runInContext(`${dateHelpers[1]}${validationHelpers[1]}; this.helpers = { groupPendingMinerUpdates, pendingTransactions, pendingUpdatesForMiner, pendingProofRequired, minerActionSheetDate, appendMinerValidationRemark, validationRemarkMarker };`, context);
+const { groupPendingMinerUpdates, pendingTransactions, pendingUpdatesForMiner, pendingProofRequired, minerActionSheetDate, appendMinerValidationRemark, validationRemarkMarker } = context.helpers;
 
 const update = {
   id: 'update-1', status: '3a', createdAt: '2026-10-03T05:47:00Z', actionAt: '2026-10-03T05:47:00Z',
@@ -26,6 +26,23 @@ grouped = groupPendingMinerUpdates([update, { ...update, id: 'update-2', status:
 assert.equal(grouped.items.length, 0, 'Conflicting pending updates must not be silently selected.');
 assert.equal(grouped.conflicts.length, 1);
 assert.equal(grouped.conflicts[0].updates.length, 2);
+assert.equal(pendingTransactions(grouped.items, grouped.conflicts).length, 2, 'Each exact unresolved transaction contributes once to the pending count.');
+
+grouped = groupPendingMinerUpdates([{ ...update, latestNudgedAt: '2026-10-03T06:47:00Z' }]);
+assert.equal(pendingTransactions(grouped.items, grouped.conflicts).length, 1, 'A nudge must not create another pending transaction.');
+
+for (const withdrawn of [
+  { ...update, state: 'withdrawn' },
+  { ...update, validationStatus: 'withdrawn' },
+]) {
+  grouped = groupPendingMinerUpdates([withdrawn]);
+  assert.equal(pendingTransactions(grouped.items, grouped.conflicts).length, 0, 'A withdrawn transaction must not remain visible or counted.');
+}
+
+const miner = { name: 'Gerry Orgasan', assignment: 'MR' };
+assert.equal(pendingUpdatesForMiner(miner, [{ ...update, assignment: 'MR' }]).length, 1, 'The assigned Miner receives the pending badge.');
+assert.equal(pendingUpdatesForMiner(miner, [{ ...update, assignment: 'RG' }]).length, 0, 'Another IMT assignment must not receive the pending badge.');
+assert.equal(pendingUpdatesForMiner({ name: 'Another Miner', assignment: 'MR' }, [{ ...update, assignment: 'MR' }]).length, 0, 'Another Miner must not receive the pending badge.');
 
 assert.equal(minerActionSheetDate('2026-10-03T05:47:00Z'), '10/3/2026');
 assert.equal(minerActionSheetDate('invalid'), '');
@@ -58,5 +75,9 @@ assert.match(rejectSource, /action: 'reject'/);
 assert.doesNotMatch(rejectSource, /values:batchUpdate/, 'Reject must never write Harvest.');
 assert.match(client, /latestNudgedAt/);
 assert.match(client, /Multiple unresolved Miner updates were found/);
+assert.match(client, /id="notificationBtn"/);
+assert.match(client, /data-action="focus-miner-validation"/);
+assert.match(client, /aria-haspopup="menu"/);
+assert.match(client, /setAccountMenuOpen\(false\)/);
 
 console.log('Pending-validation tests passed.');

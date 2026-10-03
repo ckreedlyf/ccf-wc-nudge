@@ -122,6 +122,8 @@
       .empty { padding: 32px 18px; text-align: center; color: #52667c; }
       .cards { margin-top: 18px; display: grid; gap: 12px; }
       .card.sent { border-color: #86efac; box-shadow: 0 0 0 1px #bbf7d0, 0 8px 26px rgba(23, 50, 77, .06); }
+      .card.validation-attention { border-color: #ef9a9a; box-shadow: 0 0 0 1px #fecaca, 0 8px 26px rgba(153, 27, 27, .08); }
+      .card.validation-attention .card-head { border-radius: 8px 8px 0 0; }
       .card-head { width: 100%; display: flex; align-items: center; gap: 14px; border: 0; background: white; padding: 16px; cursor: pointer; text-align: left; }
       .card-head:hover { background: #f8fafc; }
       .avatar { width: 44px; height: 44px; border-radius: 999px; background: var(--sky); color: var(--blue); display: grid; place-items: center; font-weight: 800; flex: 0 0 auto; }
@@ -198,6 +200,9 @@
       .confirmation-intro { padding-top: 16px; color: #52667c; line-height: 1.55; }
       .confirmation-intro strong { display: block; color: var(--ink); font-size: 18px; margin-bottom: 4px; }
       .mode-count { display: inline-grid; min-width: 22px; height: 22px; place-items: center; margin-left: 6px; border-radius: 999px; background: #dbeafe; color: #0754a6; font-size: 11px; font-weight: 850; }
+      .pending-badge { display: inline-flex; align-items: center; gap: 4px; border-radius: 999px; background: #fee2e2; color: #991b1b; padding: 4px 8px; font-size: 12px; font-weight: 850; }
+      .pending-jump { display: inline-flex; align-items: center; gap: 6px; margin-bottom: 10px; border: 1px solid #fecaca; border-radius: 6px; background: #fff7f7; color: #991b1b; padding: 8px 10px; cursor: pointer; font-weight: 800; }
+      .pending-jump:hover { background: #fee2e2; }
       .miner-companion-note { margin-top: 8px; padding: 9px 11px; color: #713f12; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 7px; font-size: 12px; line-height: 1.45; }
       .documentation-link { display: inline-flex; align-items: center; gap: 4px; margin-top: 7px; padding: 0; border: 0; background: transparent; color: #0754a6; font: inherit; font-weight: 800; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
       .documentation-link:hover { color: #0b6fbd; }
@@ -241,7 +246,15 @@
       .account { display: grid; justify-items: end; gap: 8px; }
       .account-top, .account-bottom { display: flex; align-items: center; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
       .account-bottom { min-height: 32px; }
-      .account-chip { color: #0754a6; font-size: 22px; line-height: 1.15; font-weight: 800; margin-top: 22px; }
+      .notification-btn { min-height: 38px; }
+      .notification-count { display: inline-grid; min-width: 22px; height: 22px; place-items: center; border-radius: 999px; background: #fee2e2; color: #991b1b; font-size: 11px; font-weight: 850; }
+      .account-menu-wrap { position: relative; }
+      .account-chip { min-height: 38px; border: 1px solid #cbd7e3; border-radius: 7px; background: white; color: #0754a6; padding: 8px 11px; cursor: pointer; font-size: 14px; line-height: 1.15; font-weight: 800; }
+      .account-chip:hover { background: #f7fafc; }
+      .account-chip:focus-visible, .notification-btn:focus-visible, .pending-jump:focus-visible { outline: 3px solid rgba(30, 107, 159, .22); outline-offset: 2px; }
+      .account-dropdown { position: absolute; z-index: 20; top: calc(100% + 7px); right: 0; width: 190px; padding: 6px; border: 1px solid var(--line); border-radius: 8px; background: white; box-shadow: 0 14px 35px rgba(15, 37, 64, .18); }
+      .account-dropdown .btn { width: 100%; border: 0; justify-content: flex-start; background: transparent; }
+      .account-dropdown .btn:hover { background: #f1f5f9; }
       .auth-form { display: grid; gap: 12px; max-width: 420px; margin-top: 18px; }
       .auth-form label { display: grid; gap: 6px; color: #49627d; font-size: 12px; font-weight: 800; text-transform: uppercase; }
       .auth-form input, .user-form input, .user-form select { min-height: 42px; border: 1px solid #cbd7e3; border-radius: 7px; background: white; color: var(--ink); padding: 0 12px; font: inherit; }
@@ -301,6 +314,11 @@
         .toprow { flex-direction: column; gap: 14px; }
         .account { width: 100%; justify-items: start; }
         .account-top, .account-bottom { justify-content: flex-start; }
+        .account-bottom { width: 100%; }
+        .notification-btn { flex: 1 1 auto; justify-content: center; }
+        .account-menu-wrap { flex: 1 1 auto; }
+        .account-chip { width: 100%; text-align: left; }
+        .account-dropdown { left: 0; right: auto; width: min(100%, 240px); }
         .toolbar { grid-template-columns: 1fr; }
         .performance-layout, .analytics-grid { grid-template-columns: 1fr; }
         .dashboard-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -339,7 +357,6 @@
         <div>
           <div class="eyebrow">CCF Welcome Center</div>
           <h1 class="product-title">Miner Nudge Tool <span class="version-badge" aria-label="Version 1.2">v1.2</span></h1>
-          <div class="account-chip" id="accountChip" hidden></div>
         </div>
         <div class="account">
           <div class="account-top">
@@ -347,8 +364,14 @@
             <button class="btn" id="refreshBtn" hidden>↻ Refresh</button>
           </div>
           <div class="account-bottom">
-            <button class="btn" id="changePasswordBtn" hidden>Change password</button>
-            <button class="btn" id="logoutBtn" hidden>Sign out</button>
+            <button class="btn notification-btn" id="notificationBtn" type="button" hidden>Notifications <span aria-hidden="true">🔔</span> <span class="notification-count" id="notificationCount">0</span></button>
+            <div class="account-menu-wrap" id="accountMenuWrap" hidden>
+              <button class="account-chip" id="accountChip" type="button" aria-haspopup="menu" aria-expanded="false"></button>
+              <div class="account-dropdown" id="accountMenu" role="menu" hidden>
+                <button class="btn" id="changePasswordBtn" type="button" role="menuitem">Change password</button>
+                <button class="btn" id="logoutBtn" type="button" role="menuitem">Sign out</button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -429,7 +452,7 @@
         </div>
       </section>
 
-      <section class="panel" id="minerValidationPanel" hidden>
+      <section class="panel" id="minerValidationPanel" tabindex="-1" hidden>
         <div class="validation-panel-head">
           <div>
             <h2>Miner Updates for Confirmation</h2>
@@ -651,10 +674,17 @@
         if (seekerId) return `id:${seekerId.toLowerCase()}`;
         return `source:${String(update?.seeker?.tab || '').trim().toLowerCase()}:${Number(update?.seeker?.row) || 0}`;
       }
+      function isUnresolvedMinerUpdate(update) {
+        const state = String(update?.state || '').trim().toLowerCase();
+        const validation = String(update?.validationStatus || '').trim().toLowerCase();
+        return !['withdrawn', 'applied', 'approved', 'rejected', 'closed', 'recorded'].includes(state)
+          && !['withdrawn', 'confirmed', 'approved', 'rejected', 'closed'].includes(validation);
+      }
       function groupPendingMinerUpdates(updates) {
         const groups = new Map();
         const invalid = [];
         for (const update of Array.isArray(updates) ? updates : []) {
+          if (!isUnresolvedMinerUpdate(update)) continue;
           if (!update?.id || !update?.seeker || !update?.status) { invalid.push(update); continue; }
           const key = pendingSeekerKey(update);
           if (!groups.has(key)) groups.set(key, []);
@@ -667,6 +697,19 @@
           else conflicts.push({ key, updates: group });
         }
         return { items, conflicts, invalid };
+      }
+      function pendingTransactions(items, conflicts) {
+        const all = [...(Array.isArray(items) ? items : []), ...(Array.isArray(conflicts) ? conflicts.flatMap((conflict) => conflict.updates || []) : [])];
+        return [...new Map(all.filter(isUnresolvedMinerUpdate).map((update) => [update.id, update])).values()];
+      }
+      function pendingMinerNameKey(value) {
+        return String(value || '').normalize('NFKC').trim().toLowerCase().replace(/[^a-z0-9]+/g, '');
+      }
+      function pendingUpdatesForMiner(miner, updates) {
+        const minerName = pendingMinerNameKey(miner?.name);
+        const assignment = String(miner?.assignment || '').trim().toUpperCase();
+        return (Array.isArray(updates) ? updates : []).filter((update) => pendingMinerNameKey(update?.miner?.name) === minerName
+          && (!update?.assignment || String(update.assignment).trim().toUpperCase() === assignment));
       }
       function pendingProofRequired(status) {
         return ['3a', '3b', '4', '5', '6a', '6b', '6c', '7', '8'].includes(String(status));
@@ -724,6 +767,8 @@
       let pendingMinerInvalidCount = 0;
       let pendingMinerError = '';
       let pendingDecisionIds = new Set();
+      let notificationPendingUpdates = [];
+      let accountMenuOpen = false;
       let filter = 'remaining';
       let reportOptions = null;
       let reportPreviewData = null;
@@ -764,7 +809,46 @@
         pendingMinerInvalidCount = 0;
         pendingMinerError = '';
         pendingDecisionIds = new Set();
+        notificationPendingUpdates = [];
+        accountMenuOpen = false;
         showNotice('', '');
+      }
+
+      function setAccountMenuOpen(open) {
+        accountMenuOpen = Boolean(open && accessToken);
+        $('accountMenu').hidden = !accountMenuOpen;
+        $('accountChip').setAttribute('aria-expanded', String(accountMenuOpen));
+      }
+
+      function focusPendingValidation(updateId = '') {
+        const selector = updateId ? `[data-pending-update-id="${CSS.escape(updateId)}"]` : '';
+        const target = (selector && document.querySelector(selector)) || $('minerValidationPanel');
+        if (!target || target.hidden) return false;
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        target.focus({ preventScroll: true });
+        return true;
+      }
+
+      async function openPendingNotifications() {
+        setAccountMenuOpen(false);
+        const update = notificationPendingUpdates[0];
+        if (!update) {
+          focusPendingValidation();
+          return;
+        }
+        const assignment = cleanImt(update.assignment || selectedImt);
+        const needsReload = currentMode !== 'miner' || (currentUser?.role === 'admin' && assignment && assignment !== selectedImt);
+        if (currentMode !== 'miner') {
+          currentMode = 'miner';
+          localStorage.setItem('toolMode', currentMode);
+        }
+        if (currentUser?.role === 'admin' && assignment && assignment !== selectedImt) {
+          selectedImt = assignment;
+          localStorage.setItem('selectedImt', selectedImt);
+        }
+        if (needsReload) await loadQueue();
+        else render();
+        requestAnimationFrame(() => focusPendingValidation(update.id));
       }
 
       async function apiRequest(path, options = {}) {
@@ -1551,14 +1635,34 @@
         const miner = miners.find((item) => item.seekers.some((candidate) => candidate.rowKey === seeker.rowKey));
         if (miner) updateMinerSyncUi(miner);
       }
-      async function loadPendingMinerValidations() {
+      async function loadPendingMinerValidations(notificationAssignments = imtOptions) {
         const result = await apiRequest(`/api/miner-updates?assignment=${encodeURIComponent(selectedImt)}`);
-        const grouped = groupPendingMinerUpdates(result.updates || []);
+        const selectedUpdates = (result.updates || []).map((update) => ({ ...update, assignment: cleanImt(update.assignment || selectedImt) }));
+        const grouped = groupPendingMinerUpdates(selectedUpdates);
         pendingMinerUpdates = grouped.items;
         pendingMinerConflicts = grouped.conflicts;
         pendingMinerInvalidCount = grouped.invalid.length;
         pendingMinerError = '';
-        return { count: grouped.items.length, conflicts: grouped.conflicts.length, invalid: grouped.invalid.length, total: (result.updates || []).length };
+        if (currentUser?.role === 'admin') {
+          const assignments = [...new Set([selectedImt, ...(notificationAssignments || [])].map(cleanImt).filter(Boolean))];
+          const otherResults = await Promise.all(assignments.filter((assignment) => assignment !== selectedImt).map(async (assignment) => {
+            const response = await apiRequest(`/api/miner-updates?assignment=${encodeURIComponent(assignment)}`);
+            return groupPendingMinerUpdates((response.updates || []).map((update) => ({ ...update, assignment: cleanImt(update.assignment || assignment) })));
+          }));
+          notificationPendingUpdates = pendingTransactions(grouped.items, grouped.conflicts);
+          otherResults.forEach((item) => { notificationPendingUpdates.push(...pendingTransactions(item.items, item.conflicts)); });
+          notificationPendingUpdates = [...new Map(notificationPendingUpdates.map((update) => [update.id, update])).values()];
+        } else {
+          notificationPendingUpdates = pendingTransactions(grouped.items, grouped.conflicts);
+        }
+        return { count: grouped.items.length, conflicts: grouped.conflicts.length, invalid: grouped.invalid.length, total: pendingTransactions(grouped.items, grouped.conflicts).length };
+      }
+      async function loadAdminHeaderNotifications(assignments = imtOptions) {
+        try {
+          await loadPendingMinerValidations(assignments);
+        } catch (_error) {
+          notificationPendingUpdates = [];
+        }
       }
       function pendingUpdateById(id) {
         return pendingMinerUpdates.find((update) => update.id === id) || null;
@@ -1596,7 +1700,7 @@
           const status = String(update.status || '');
           const actionDate = formatPendingDate(update.actionAt || update.createdAt);
           const missingProof = pendingProofRequired(status) && !update.hasProof;
-          return `<article class="validation-card ${update.latestNudgedAt ? 'nudged' : ''}" data-pending-update-id="${escapeHtml(update.id)}">
+          return `<article class="validation-card ${update.latestNudgedAt ? 'nudged' : ''}" data-pending-update-id="${escapeHtml(update.id)}" tabindex="-1">
             <div class="validation-card-head"><div><div class="validation-seeker">${escapeHtml(update.seeker?.name || update.seeker?.id || 'Unknown seeker')}</div><div class="subline">Miner updated the status of this seeker. Please validate.</div></div><span class="pill">${escapeHtml(selectedImt)}</span></div>
             ${update.latestNudgedAt ? `<div class="validation-nudge"><strong>Miner follow-up requested</strong><br>${escapeHtml(update.miner?.name || 'Miner')} is waiting for validation of this ${escapeHtml(pendingActionLabel(update))} update. Latest nudge: ${escapeHtml(formatPendingDate(update.latestNudgedAt))}.</div>` : ''}
             <div class="validation-meta">
@@ -2144,10 +2248,13 @@
         $('updateBtn').textContent = isConfirmation ? '✓ Update status for marked sent' : '✓ Update Column N for marked sent';
         $('updateBtn').disabled = !accessToken || sentMiners.length === 0 || currentUser?.mustChangePassword;
         $('refreshBtn').hidden = !accessToken;
-        $('accountChip').hidden = !accessToken;
-        $('changePasswordBtn').hidden = !accessToken;
-        $('logoutBtn').hidden = !accessToken;
-        $('accountChip').textContent = currentUser ? `${currentUser.displayName || currentUser.email} · ${currentUser.role === 'imt' ? currentUser.imtAssignment : currentUser.role === 'confirmation' ? 'For Confirmation' : 'Admin'}` : '';
+        $('notificationBtn').hidden = !accessToken;
+        $('notificationCount').textContent = notificationPendingUpdates.length;
+        $('notificationBtn').setAttribute('aria-label', `Notifications: ${notificationPendingUpdates.length} pending Miner validation${notificationPendingUpdates.length === 1 ? '' : 's'}`);
+        $('accountMenuWrap').hidden = !accessToken;
+        $('accountMenu').hidden = !accountMenuOpen || !accessToken;
+        $('accountChip').setAttribute('aria-expanded', String(Boolean(accountMenuOpen && accessToken)));
+        $('accountChip').textContent = currentUser ? `${currentUser.displayName || currentUser.email} · ${currentUser.role === 'imt' ? currentUser.imtAssignment : currentUser.role === 'confirmation' ? 'For Confirmation' : 'Admin'} ▾` : '';
         $('signInPanel').hidden = Boolean(accessToken);
         $('signInTitle').textContent = 'Sign in to CCF Welcome Center';
         $('signInCopy').textContent = 'Use the email and temporary password provided by the administrator. Your assigned workspace opens automatically.';
@@ -2194,12 +2301,13 @@
         const isMarked = sent.has(miner.id);
         const isSent = isConfirmation ? isMarked : minerWasSentToday(miner);
         const editedCount = isConfirmation ? 0 : minerDirtySeekers(miner).length;
+        const minerPending = isConfirmation ? [] : pendingUpdatesForMiner(miner, pendingTransactions(pendingMinerUpdates, pendingMinerConflicts));
         return `
-          <article class="card ${isSent ? 'sent' : ''} ${expanded.has(miner.id) ? 'open' : ''}" data-id="${miner.id}">
+          <article class="card ${isSent ? 'sent' : ''} ${minerPending.length ? 'validation-attention' : ''} ${expanded.has(miner.id) ? 'open' : ''}" data-id="${miner.id}">
             <button class="card-head" data-action="toggle" data-id="${miner.id}">
               <div class="avatar">${initials(miner.name)}</div>
               <div class="grow">
-                <div class="name-row"><div class="miner-name">${escapeHtml(miner.name)}</div>${isConfirmation ? '<span class="pill">PC</span>' : `<span class="pill">Assigned to ${escapeHtml(miner.assignment)}</span>`}${isSent ? `<span class="pill">${isConfirmation ? 'Sent' : 'Sent today'} ✓</span>` : ''}</div>
+                <div class="name-row"><div class="miner-name">${escapeHtml(miner.name)}</div>${isConfirmation ? '<span class="pill">PC</span>' : `<span class="pill">Assigned to ${escapeHtml(miner.assignment)}</span>`}${minerPending.length ? `<span class="pending-badge" aria-label="${minerPending.length} pending Miner validation${minerPending.length === 1 ? '' : 's'}">🔔 ${minerPending.length}</span>` : ''}${isSent ? `<span class="pill">${isConfirmation ? 'Sent' : 'Sent today'} ✓</span>` : ''}</div>
                 <div class="subline"><span>${escapeHtml(miner.number)}</span><span>/</span><span>${miner.seekers.length} ${isConfirmation ? 'guest' : 'seeker'}${miner.seekers.length === 1 ? '' : 's'}</span></div>
                 <div class="badges">
                   ${isConfirmation ? `<button class="copy-mini" data-action="copy-number" data-id="${miner.id}">${copiedNumber === miner.id ? '✓ Number copied!' : 'Copy number'}</button>` : ''}
@@ -2213,6 +2321,7 @@
             </div>`}
             <div class="card-body">
               <div>
+                ${minerPending.length ? `<button class="pending-jump" type="button" data-action="focus-miner-validation" data-id="${escapeHtml(miner.id)}">${minerPending.length} Miner update${minerPending.length === 1 ? '' : 's'} awaiting validation</button>` : ''}
                 <div class="section-title">${isConfirmation ? 'Guests for Confirmation' : 'Seekers'}</div>
                 ${miner.seekers.map((seeker) => `
                   ${isConfirmation
@@ -2314,12 +2423,18 @@
           return render();
         }
         if (currentMode === 'users') {
+          if (!reportOptions) {
+            try { reportOptions = await apiRequest('/api/reports'); } catch (_error) { reportOptions = null; }
+          }
+          await loadAdminHeaderNotifications(reportOptions?.imts || imtOptions);
           await loadManagedUsers();
+          render();
           return true;
         }
         if (currentMode === 'reports') {
           if (!reportOptions) await loadReportOptions();
-          else render();
+          await loadAdminHeaderNotifications(reportOptions?.imts || []);
+          render();
           return true;
         }
         let loaded = false;
@@ -2329,28 +2444,31 @@
           const queue = await fetchQueue();
           miners = queue.miners;
           dirtySeekers = new Set();
+          const notificationAssignments = queue.imtOptions?.length ? queue.imtOptions : imtOptions;
           let companionResult = { count: 0, conflicts: 0, invalid: 0, total: 0 };
           let companionError = '';
           const shouldLoadMinerValidations = (currentMode === 'miner' && currentUser?.role !== 'confirmation') || (currentMode === 'confirmation' && currentUser?.role === 'admin');
           if (shouldLoadMinerValidations) {
             try {
-              companionResult = await loadPendingMinerValidations();
+              companionResult = await loadPendingMinerValidations(notificationAssignments);
             } catch (error) {
               companionError = error.message || 'Unable to check Miner Companion updates.';
               pendingMinerUpdates = [];
               pendingMinerConflicts = [];
               pendingMinerInvalidCount = 0;
               pendingMinerError = companionError;
+              notificationPendingUpdates = [];
             }
           } else {
             pendingMinerUpdates = [];
             pendingMinerConflicts = [];
             pendingMinerInvalidCount = 0;
             pendingMinerError = '';
+            if (currentUser?.role === 'confirmation') notificationPendingUpdates = [];
           }
           skipped = queue.skipped;
           auditEntries = queue.auditEntries || [];
-          imtOptions = queue.imtOptions;
+          if (queue.imtOptions?.length || currentMode === 'miner') imtOptions = queue.imtOptions;
           reportByImt = queue.reportByImt;
           activeReport = queue.activeReport;
           monthTabs = queue.monthTabs;
@@ -2451,7 +2569,10 @@
           return;
         }
         const miner = miners.find((item) => item.id === target.dataset.id);
-        if (target.dataset.action === 'toggle') {
+        if (target.dataset.action === 'focus-miner-validation' && miner) {
+          const update = pendingUpdatesForMiner(miner, pendingTransactions(pendingMinerUpdates, pendingMinerConflicts))[0];
+          focusPendingValidation(update?.id);
+        } else if (target.dataset.action === 'toggle') {
           expanded.has(target.dataset.id) ? expanded.delete(target.dataset.id) : expanded.add(target.dataset.id);
           render();
         } else if (target.dataset.action === 'copy-message' && miner) {
@@ -2632,15 +2753,33 @@
         event.preventDefault();
         signIn().catch((error) => showNotice('error', error.message));
       });
-      $('logoutBtn').addEventListener('click', () => signOut().catch((error) => showNotice('error', error.message)));
+      $('notificationBtn').addEventListener('click', () => openPendingNotifications().catch((error) => showNotice('error', error.message)));
+      $('accountChip').addEventListener('click', (event) => {
+        event.stopPropagation();
+        setAccountMenuOpen(!accountMenuOpen);
+        if (accountMenuOpen) $('changePasswordBtn').focus();
+      });
+      $('accountMenu').addEventListener('click', (event) => event.stopPropagation());
+      document.addEventListener('click', (event) => {
+        if (accountMenuOpen && !$('accountMenuWrap').contains(event.target)) setAccountMenuOpen(false);
+      });
+      $('logoutBtn').addEventListener('click', () => {
+        setAccountMenuOpen(false);
+        signOut().catch((error) => showNotice('error', error.message));
+      });
       $('closeDocumentationBtn').addEventListener('click', closeDocumentation);
       $('documentationModal').addEventListener('click', (event) => {
         if (event.target === $('documentationModal')) closeDocumentation();
       });
       document.addEventListener('keydown', (event) => {
         if (event.key === 'Escape' && !$('documentationModal').hidden) closeDocumentation();
+        if (event.key === 'Escape' && accountMenuOpen) {
+          setAccountMenuOpen(false);
+          $('accountChip').focus();
+        }
       });
       $('changePasswordBtn').addEventListener('click', () => {
+        setAccountMenuOpen(false);
         $('passwordCopy').textContent = 'Use at least 12 characters. This replaces your current password immediately.';
         $('cancelPasswordBtn').textContent = 'Cancel';
         $('passwordModal').hidden = false;
