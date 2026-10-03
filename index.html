@@ -202,6 +202,24 @@
       .documentation-link { display: inline-flex; align-items: center; gap: 4px; margin-top: 7px; padding: 0; border: 0; background: transparent; color: #0754a6; font: inherit; font-weight: 800; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
       .documentation-link:hover { color: #0b6fbd; }
       .documentation-link:focus-visible { outline: 3px solid rgba(30, 107, 159, .22); outline-offset: 3px; border-radius: 3px; }
+      .validation-panel-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 12px; }
+      .validation-panel-head h2 { margin: 0; color: var(--ink); font-size: 18px; }
+      .validation-panel-head p { margin: 4px 0 0; color: #52667c; line-height: 1.45; }
+      .validation-count { flex: 0 0 auto; padding: 5px 9px; border-radius: 999px; color: #0754a6; background: #e8f4ff; font-size: 12px; font-weight: 800; }
+      .validation-list { display: grid; gap: 12px; }
+      .validation-card { padding: 14px; border: 1px solid #d7e2ed; border-left: 4px solid #1e6b9f; border-radius: 7px; background: #fff; }
+      .validation-card.nudged { border-left-color: #d97706; }
+      .validation-card.conflict { border-left-color: #b91c1c; background: #fff7f7; }
+      .validation-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+      .validation-seeker { color: var(--ink); font-size: 16px; font-weight: 800; }
+      .validation-meta { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 18px; margin-top: 12px; }
+      .validation-meta div { min-width: 0; color: #52667c; font-size: 13px; line-height: 1.45; }
+      .validation-meta strong { display: block; margin-bottom: 2px; color: #27445f; font-size: 11px; text-transform: uppercase; }
+      .validation-note, .validation-nudge { margin-top: 10px; padding: 9px 11px; border-radius: 6px; font-size: 13px; line-height: 1.45; }
+      .validation-note { background: #f4f7fa; color: #334e68; }
+      .validation-nudge { background: #fff7ed; color: #8a4700; }
+      .validation-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+      .validation-empty { padding: 18px; color: #52667c; text-align: center; background: #f8fafc; border-radius: 7px; }
       .update-review-card { border: 1px solid var(--line); border-left: 4px solid var(--gold); border-radius: 7px; background: white; padding: 16px; }
       .update-review-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
       .update-review-name { color: var(--ink); font-size: 17px; font-weight: 850; }
@@ -306,6 +324,8 @@
         .report-filters, .report-custom-range, .report-visual-grid { grid-template-columns: 1fr; }
         .report-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .report-bar-row { grid-template-columns: 105px minmax(0, 1fr) 72px; }
+        .validation-panel-head, .validation-card-head { flex-direction: column; }
+        .validation-meta { grid-template-columns: 1fr; }
       }
       @media (min-width: 761px) and (max-width: 920px) {
         .toolbar { grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -407,6 +427,17 @@
           <div class="panel-heading imt-heading"><div><h2>IMT Performance</h2><p>Placement rate and volume for the selected month range.</p></div><label class="sort-control">Sort <select id="imtSortSelect"><option value="rate">Placement rate</option><option value="volume">Assigned volume</option></select></label></div>
           <div class="imt-performance" id="adminOverviewGrid"></div>
         </div>
+      </section>
+
+      <section class="panel" id="minerValidationPanel" hidden>
+        <div class="validation-panel-head">
+          <div>
+            <h2>Miner Updates for Confirmation</h2>
+            <p>Validate a Miner's proposed seeker update before any Harvest status, DLT, or remarks are changed.</p>
+          </div>
+          <span class="validation-count" id="minerValidationCount">0 pending</span>
+        </div>
+        <div class="validation-list" id="minerValidationList"></div>
       </section>
 
       <section class="queue-section" id="queueMetrics" hidden>
@@ -544,6 +575,19 @@
         7: 'Already has DGroup',
         8: 'Placement unsuccessful',
       };
+      const HARVEST_STATUS_VALUES = {
+        1: '1 IMT has not done initial follow up to the Miner',
+        2: '2 Miner to confirm if guest has been contacted',
+        '3a': '3a Miner has contacted the guest and waiting for response',
+        '3b': '3b Miner has endorsed the guest to downline/other dgroup',
+        4: '4 Miner to confirm guest attendance',
+        5: '5 IMT to Repost Seeker Details in GC',
+        '6a': '6a Placed (Miner)',
+        '6b': "6b Placed (Miner's DL)",
+        '6c': '6c Placed in another DL from WC',
+        7: '7 Seeker already has a dgroup (not via WC)',
+        8: '8 Dgroup Placement Unsuccessful',
+      };
       const CONFIRMATION_TAB = 'For confirmation';
       const CONFIRMATION_SENT_STATUS = '4 PC confirmation inquiry sent';
       const AUDIT_TAB = 'Audit Log';
@@ -601,6 +645,54 @@
       }
       // SENT_TODAY_HELPERS_END
 
+      // MINER_VALIDATION_HELPERS_START
+      function pendingSeekerKey(update) {
+        const seekerId = String(update?.seeker?.id || '').trim();
+        if (seekerId) return `id:${seekerId.toLowerCase()}`;
+        return `source:${String(update?.seeker?.tab || '').trim().toLowerCase()}:${Number(update?.seeker?.row) || 0}`;
+      }
+      function groupPendingMinerUpdates(updates) {
+        const groups = new Map();
+        const invalid = [];
+        for (const update of Array.isArray(updates) ? updates : []) {
+          if (!update?.id || !update?.seeker || !update?.status) { invalid.push(update); continue; }
+          const key = pendingSeekerKey(update);
+          if (!groups.has(key)) groups.set(key, []);
+          groups.get(key).push(update);
+        }
+        const items = [], conflicts = [];
+        for (const [key, group] of groups) {
+          group.sort((a, b) => String(a.createdAt || '').localeCompare(String(b.createdAt || '')));
+          if (group.length === 1) items.push(group[0]);
+          else conflicts.push({ key, updates: group });
+        }
+        return { items, conflicts, invalid };
+      }
+      function pendingProofRequired(status) {
+        return ['3a', '3b', '4', '5', '6a', '6b', '6c', '7', '8'].includes(String(status));
+      }
+      function minerActionSheetDate(value) {
+        const key = dateLastTouchCalendarKey(value, APP_TIME_ZONE);
+        if (!key) return '';
+        const [year, month, day] = key.split('-');
+        return `${Number(month)}/${Number(day)}/${year}`;
+      }
+      function validationRemarkMarker(updateId) {
+        return `[Miner validation:${String(updateId || '').trim()}]`;
+      }
+      function appendMinerValidationRemark(existing, update, validatorNote = '') {
+        const current = String(existing || '').trim();
+        const marker = validationRemarkMarker(update?.id);
+        if (current.includes(marker)) return current;
+        const miner = String(update?.miner?.name || 'Miner').trim();
+        const status = String(update?.status || '').trim();
+        const actionDate = minerActionSheetDate(update?.actionAt || update?.createdAt);
+        const note = String(validatorNote || '').trim();
+        const entry = `${marker} ${status} approved from ${miner}${actionDate ? `; action date ${actionDate}` : ''}${note ? `; IMT note: ${note}` : ''}`;
+        return current ? `${current} || ${entry}` : entry;
+      }
+      // MINER_VALIDATION_HELPERS_END
+
       let accessToken = '';
       let signedInEmail = '';
       let currentUser = null;
@@ -627,6 +719,11 @@
       let copiedMessage = '';
       let copiedNumber = '';
       let dirtySeekers = new Set();
+      let pendingMinerUpdates = [];
+      let pendingMinerConflicts = [];
+      let pendingMinerInvalidCount = 0;
+      let pendingMinerError = '';
+      let pendingDecisionIds = new Set();
       let filter = 'remaining';
       let reportOptions = null;
       let reportPreviewData = null;
@@ -662,6 +759,11 @@
         copiedMessage = '';
         copiedNumber = '';
         dirtySeekers = new Set();
+        pendingMinerUpdates = [];
+        pendingMinerConflicts = [];
+        pendingMinerInvalidCount = 0;
+        pendingMinerError = '';
+        pendingDecisionIds = new Set();
         showNotice('', '');
       }
 
@@ -1449,52 +1551,208 @@
         const miner = miners.find((item) => item.seekers.some((candidate) => candidate.rowKey === seeker.rowKey));
         if (miner) updateMinerSyncUi(miner);
       }
-      function matchMinerCompanionUpdate(update, seekers) {
-        const guestId = String(update.seeker?.id || '').trim();
-        const idMatches = guestId ? seekers.filter((seeker) => String(seeker.id || '').trim() === guestId) : [];
-        const updateTab = String(update.seeker?.tab || '').trim().toLowerCase();
-        const updateRow = Number(update.seeker?.row);
-        const sameSource = (seeker) => updateTab && Number.isFinite(updateRow)
-          && String(seeker.tab || '').trim().toLowerCase() === updateTab
-          && Number(seeker.rowIdx) === updateRow;
-        if (idMatches.length) return idMatches.find(sameSource) || idMatches[0];
-        if (!updateTab || !Number.isFinite(updateRow)) return null;
-        return seekers.find(sameSource) || null;
-      }
-      async function applyPendingMinerUpdates() {
+      async function loadPendingMinerValidations() {
         const result = await apiRequest(`/api/miner-updates?assignment=${encodeURIComponent(selectedImt)}`);
-        const seekers = miners.flatMap((miner) => miner.seekers);
-        const grouped = new Map();
-        let unmatched = 0;
-        for (const update of [...(result.updates || [])].sort((a, b) => String(a.createdAt || '').localeCompare(String(b.createdAt || '')))) {
-          const seeker = matchMinerCompanionUpdate(update, seekers);
-          if (!seeker) { unmatched += 1; continue; }
-          let proposal = grouped.get(seeker.rowKey);
-          if (!proposal) {
-            proposal = { seeker, ids: [], updates: [] };
-            grouped.set(seeker.rowKey, proposal);
+        const grouped = groupPendingMinerUpdates(result.updates || []);
+        pendingMinerUpdates = grouped.items;
+        pendingMinerConflicts = grouped.conflicts;
+        pendingMinerInvalidCount = grouped.invalid.length;
+        pendingMinerError = '';
+        return { count: grouped.items.length, conflicts: grouped.conflicts.length, invalid: grouped.invalid.length, total: (result.updates || []).length };
+      }
+      function pendingUpdateById(id) {
+        return pendingMinerUpdates.find((update) => update.id === id) || null;
+      }
+      function formatPendingDate(value) {
+        const date = new Date(value);
+        return Number.isNaN(date.getTime()) ? 'Not supplied' : new Intl.DateTimeFormat('en-PH', {
+          timeZone: APP_TIME_ZONE, dateStyle: 'medium', timeStyle: 'short',
+        }).format(date);
+      }
+      function pendingActionLabel(update) {
+        const labels = { '3a': 'Contacted', '3b': 'Endorse / Hand Off', 5: 'Return to IMT / Repost', '6a': 'Placed', '6b': 'Placed', '6c': 'Placed', 7: 'Placed', 8: 'Placement Unsuccessful' };
+        return labels[String(update?.status)] || update?.validationType || 'Status update';
+      }
+      function pendingProofLabel(update) {
+        const labels = { '3a': 'View Contact Screenshot', '3b': 'View Endorsement Screenshot', 5: 'View Repost Documentation', 8: 'View Follow-up Screenshot' };
+        return labels[String(update?.status)] || 'View Placement Proof';
+      }
+      function renderPendingMinerValidations() {
+        const total = pendingMinerUpdates.length + pendingMinerConflicts.reduce((sum, conflict) => sum + conflict.updates.length, 0);
+        $('minerValidationCount').textContent = `${total} pending`;
+        if (pendingMinerError) {
+          $('minerValidationList').innerHTML = `<div class="validation-empty">${escapeHtml(pendingMinerError)}</div>`;
+          return;
+        }
+        const conflicts = pendingMinerConflicts.map((conflict) => {
+          const first = conflict.updates[0];
+          return `<article class="validation-card conflict" role="alert">
+            <div class="validation-card-head"><div><div class="validation-seeker">${escapeHtml(first?.seeker?.name || first?.seeker?.id || 'Unknown seeker')}</div><div class="subline">Multiple unresolved Miner updates were found for this seeker.</div></div><span class="pill">Conflict</span></div>
+            <div class="validation-note">${conflict.updates.length} pending transactions were preserved. No Harvest change is allowed until this conflict is reviewed.</div>
+          </article>`;
+        }).join('');
+        const cards = pendingMinerUpdates.map((update) => {
+          const busy = pendingDecisionIds.has(update.id);
+          const status = String(update.status || '');
+          const actionDate = formatPendingDate(update.actionAt || update.createdAt);
+          const missingProof = pendingProofRequired(status) && !update.hasProof;
+          return `<article class="validation-card ${update.latestNudgedAt ? 'nudged' : ''}" data-pending-update-id="${escapeHtml(update.id)}">
+            <div class="validation-card-head"><div><div class="validation-seeker">${escapeHtml(update.seeker?.name || update.seeker?.id || 'Unknown seeker')}</div><div class="subline">Miner updated the status of this seeker. Please validate.</div></div><span class="pill">${escapeHtml(selectedImt)}</span></div>
+            ${update.latestNudgedAt ? `<div class="validation-nudge"><strong>Miner follow-up requested</strong><br>${escapeHtml(update.miner?.name || 'Miner')} is waiting for validation of this ${escapeHtml(pendingActionLabel(update))} update. Latest nudge: ${escapeHtml(formatPendingDate(update.latestNudgedAt))}.</div>` : ''}
+            <div class="validation-meta">
+              <div><strong>Official Harvest</strong>${escapeHtml(update.seeker?.currentStatus || '-')} - ${escapeHtml(update.seeker?.currentStatusLabel || STATUS_LABELS[update.seeker?.currentStatus] || 'Unknown')}</div>
+              <div><strong>Miner requested</strong>${escapeHtml(status)} - ${escapeHtml(update.statusLabel || STATUS_LABELS[status] || status)}</div>
+              <div><strong>Action</strong>${escapeHtml(pendingActionLabel(update))}</div>
+              <div><strong>Action date / proposed DLT</strong>${escapeHtml(actionDate)}</div>
+              <div><strong>Submitted by</strong>${escapeHtml(update.miner?.name || 'Unknown Miner')}</div>
+              <div><strong>Submitted</strong>${escapeHtml(formatPendingDate(update.createdAt))}</div>
+              ${update.leader ? `<div><strong>Endorsed / handed off to</strong>${escapeHtml(update.leader)}</div>` : ''}
+            </div>
+            ${update.note ? `<div class="validation-note"><strong>Miner note:</strong> ${escapeHtml(update.note)}</div>` : ''}
+            ${missingProof ? '<div class="validation-note" role="alert"><strong>Proof is missing.</strong> Approval is disabled; Harvest remains unchanged.</div>' : ''}
+            <div class="validation-actions">
+              ${update.hasProof ? `<button class="documentation-link" type="button" data-action="view-pending-documentation" data-update-id="${escapeHtml(update.id)}">${escapeHtml(pendingProofLabel(update))}</button>` : ''}
+              <button class="btn primary" type="button" data-action="approve-miner-update" data-update-id="${escapeHtml(update.id)}" ${busy || missingProof ? 'disabled' : ''}>${busy ? 'Working...' : 'Approve'}</button>
+              <button class="btn" type="button" data-action="reject-pending-miner-update" data-update-id="${escapeHtml(update.id)}" ${busy ? 'disabled' : ''}>Reject</button>
+            </div>
+          </article>`;
+        }).join('');
+        const invalid = pendingMinerInvalidCount ? `<div class="validation-card conflict" role="alert">${pendingMinerInvalidCount} malformed pending update${pendingMinerInvalidCount === 1 ? '' : 's'} were preserved but cannot be validated. No Harvest changes were made.</div>` : '';
+        $('minerValidationList').innerHTML = conflicts + cards + invalid || '<div class="validation-empty">No pending Miner updates for this IMT.</div>';
+      }
+      function openPendingDocumentation(update) {
+        if (!update?.id || !update.hasProof) throw new Error('No documentation is available for this pending update.');
+        const proofUrl = `/api/miner-updates?action=proof&assignment=${encodeURIComponent(selectedImt)}&id=${encodeURIComponent(update.id)}`;
+        $('documentationTitle').textContent = `${pendingProofLabel(update)} · ${update.seeker?.name || update.seeker?.id || 'Seeker'}`;
+        $('documentationSummary').textContent = `${update.miner?.name || 'Miner'} requests ${update.status} ${update.statusLabel || STATUS_LABELS[update.status] || update.status}.`;
+        $('documentationEndorsement').hidden = !update.leader;
+        $('documentationEndorsement').innerHTML = update.leader ? `<strong>Person / DGroup Leader / receiver:</strong> ${escapeHtml(update.leader)}` : '';
+        $('openDocumentationLink').href = proofUrl;
+        $('documentationImage').hidden = true;
+        $('documentationImageStatus').hidden = false;
+        $('documentationImageStatus').textContent = 'Loading documentation...';
+        $('documentationImage').onload = () => { $('documentationImageStatus').hidden = true; $('documentationImage').hidden = false; };
+        $('documentationImage').onerror = () => { $('documentationImage').hidden = true; $('documentationImageStatus').hidden = false; $('documentationImageStatus').textContent = 'This image cannot be previewed in the browser. Use "Open original image" below.'; };
+        $('documentationImage').src = proofUrl;
+        $('documentationModal').hidden = false;
+        $('closeDocumentationBtn').focus();
+      }
+      function harvestStatusValue(code) {
+        for (const miner of miners) {
+          for (const seeker of miner.seekers) if (seeker.statusOptions?.[code]) return seeker.statusOptions[code];
+        }
+        return HARVEST_STATUS_VALUES[code] || `${code} ${STATUS_LABELS[code] || code}`;
+      }
+      async function verifyPendingProof(update) {
+        if (!pendingProofRequired(update.status)) return;
+        if (!update.hasProof) throw new Error('The required proof is missing from this pending update.');
+        const response = await fetch(`/api/miner-updates?action=proof&assignment=${encodeURIComponent(selectedImt)}&id=${encodeURIComponent(update.id)}`, { credentials: 'same-origin' });
+        if (!response.ok) {
+          const result = await response.json().catch(() => ({}));
+          throw new Error(result.error || 'The proof cannot be verified for this pending update.');
+        }
+        if (response.body?.cancel) await response.body.cancel();
+      }
+      async function readHarvestValidationTarget(update) {
+        const tab = String(update?.seeker?.tab || '').trim();
+        const rowNumber = Number(update?.seeker?.row);
+        if (!tab || !Number.isInteger(rowNumber) || rowNumber < 2) throw new Error('The pending update does not identify a valid Harvest row.');
+        const params = new URLSearchParams();
+        params.append('ranges', `${quoteSheetName(tab)}!A1:AZ3`);
+        params.append('ranges', `${quoteSheetName(tab)}!A${rowNumber}:AZ${rowNumber}`);
+        const response = await sheetFetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values:batchGet?${params}`, { headers: { Authorization: `Bearer ${accessToken}` } });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error?.message || 'Unable to verify the current Harvest seeker row.');
+        const headerRows = result.valueRanges?.[0]?.values || [];
+        const header = headerRows[findBestHeaderRow(headerRows, ['IMT Assignment'], ['Placement Status', 'Status'])] || [];
+        const row = result.valueRanges?.[1]?.values?.[0] || [];
+        const assignmentIndex = findColumnIndex(header, ['IMT Assignment'], 0);
+        const seekerIdIndex = findColumnIndex(header, ['Seeker ID', 'SeekerID', 'Seeker No', 'Seeker Number', 'Guest ID', 'GuestID', 'Guest No', 'Guest Number'], -1);
+        const statusIndex = findColumnIndex(header, ['Placement Status', 'Status'], 12);
+        const dltIndex = findColumnIndex(header, ['Date Last touch', 'Date Last Touched', 'Last Touch Date', 'Last Touch', 'Last Touched', 'DLT'], 13);
+        const remarksIndex = findColumnIndex(header, ['IMT Remarks', 'IMT Remark', 'Remarks'], 14);
+        if (!row.length || cleanImt(row[assignmentIndex]) !== cleanImt(selectedImt)) throw new Error(`This Harvest row is no longer assigned to ${selectedImt}.`);
+        const expectedId = String(update.seeker?.id || '').trim();
+        const actualId = seekerIdIndex >= 0 ? String(row[seekerIdIndex] || '').trim() : '';
+        if (expectedId && actualId && expectedId !== actualId) throw new Error('The pending update no longer matches the seeker in its Harvest row.');
+        return {
+          tab, rowNumber,
+          status: extractStatus(row[statusIndex]),
+          dlt: normalizeDateCell(row[dltIndex]),
+          remarks: String(row[remarksIndex] || '').trim(),
+          statusColumn: columnLetter(statusIndex), dltColumn: columnLetter(dltIndex), remarksColumn: columnLetter(remarksIndex),
+        };
+      }
+      async function freshPendingUpdate(id) {
+        const result = await apiRequest(`/api/miner-updates?assignment=${encodeURIComponent(selectedImt)}`);
+        const grouped = groupPendingMinerUpdates(result.updates || []);
+        if (grouped.conflicts.some((conflict) => conflict.updates.some((update) => update.id === id))) throw new Error('Multiple pending updates now exist for this seeker. No Harvest change was made.');
+        const update = grouped.items.find((item) => item.id === id);
+        if (!update) throw new Error('This Miner update is no longer pending. Refresh to see its latest result.');
+        return update;
+      }
+      async function approvePendingMinerUpdate(original) {
+        const validatorNote = window.prompt(`Optional IMT validation note for ${original.seeker?.name || 'this seeker'}:`, '');
+        if (validatorNote === null) return;
+        pendingDecisionIds.add(original.id); renderPendingMinerValidations();
+        let auditWarning = '';
+        try {
+          await apiRequest('/api/miner-updates', { method: 'POST', body: JSON.stringify({ action: 'validate', assignment: selectedImt, ids: [original.id] }) });
+          const update = await freshPendingUpdate(original.id);
+          if (!ALL_STATUS_CODES.includes(String(update.status))) throw new Error('The requested Harvest status is not supported.');
+          const actionDate = minerActionSheetDate(update.actionAt || update.createdAt);
+          if (!actionDate) throw new Error('The Miner action date is invalid.');
+          await verifyPendingProof(update);
+          const target = await readHarvestValidationTarget(update);
+          const nextRemarks = appendMinerValidationRemark(target.remarks, update, validatorNote);
+          const alreadyApplied = target.status === String(update.status)
+            && dateLastTouchCalendarKey(target.dlt) === dateLastTouchCalendarKey(actionDate)
+            && target.remarks.includes(validationRemarkMarker(update.id));
+          if (!alreadyApplied && target.status !== String(update.seeker?.currentStatus || '')) throw new Error('The official Harvest status changed after this Miner update was submitted. Refresh before validating.');
+          const data = [];
+          if (target.status !== String(update.status)) data.push({ range: `${quoteSheetName(target.tab)}!${target.statusColumn}${target.rowNumber}`, values: [[harvestStatusValue(String(update.status))]] });
+          if (dateLastTouchCalendarKey(target.dlt) !== dateLastTouchCalendarKey(actionDate)) data.push({ range: `${quoteSheetName(target.tab)}!${target.dltColumn}${target.rowNumber}`, values: [[actionDate]] });
+          if (nextRemarks !== target.remarks) data.push({ range: `${quoteSheetName(target.tab)}!${target.remarksColumn}${target.rowNumber}`, values: [[nextRemarks]] });
+          if (data.length) {
+            const response = await sheetFetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values:batchUpdate`, {
+              method: 'POST', headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({ valueInputOption: 'USER_ENTERED', data }),
+            });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.error?.message || 'Unable to apply the approved Miner update to Harvest.');
           }
-          proposal.ids.push(update.id);
-          proposal.updates.push(update);
+          const decision = await apiRequest('/api/miner-updates', { method: 'POST', body: JSON.stringify({ action: 'acknowledge', assignment: selectedImt, ids: [update.id], reason: validatorNote.trim() }) });
+          if (!decision.applied?.includes(update.id) && !alreadyApplied) throw new Error('Harvest was updated, but Miner Integration did not confirm the approval. Retry safely to complete the acknowledgement.');
+          try {
+            await appendAuditEntry({ action: 'Miner update approved', assignment: selectedImt, targets: [update.miner?.name, update.seeker?.name], rows: 1, tabs: [target.tab], details: `${update.status} approved; DLT ${actionDate}; update ${update.id}` });
+          } catch (error) { auditWarning = `Approval completed, but Sheet audit logging failed: ${error.message}`; }
+          await loadQueue();
+          showNotice(auditWarning ? 'error' : 'success', `${update.seeker?.name || 'Seeker'} was approved and synchronized to Harvest.${auditWarning ? ` ${auditWarning}` : ''}`);
+        } finally {
+          pendingDecisionIds.delete(original.id);
+          renderPendingMinerValidations();
         }
-        for (const { seeker, ids, updates } of grouped.values()) {
-          const latest = updates[updates.length - 1];
-          if (!ALL_STATUS_CODES.includes(String(latest.status))) { unmatched += updates.length; continue; }
-          seeker.minerCompanionUpdateIds = ids;
-          seeker.minerCompanionStatus = String(latest.status);
-          seeker.minerCompanionMiner = latest.miner?.name || 'Miner';
-          seeker.minerCompanionSubmittedAt = latest.createdAt || '';
-          seeker.minerCompanionNote = latest.note || '';
-          seeker.minerCompanionLeader = latest.leader || '';
-          seeker.minerCompanionHasProof = Boolean(latest.hasProof);
-          seeker.minerCompanionProofUpdateId = latest.hasProof ? latest.id : '';
-          seeker.minerCompanionHarvestSaved = false;
-          seeker.status = seeker.minerCompanionStatus;
-          dirtySeekers.add(seeker.rowKey);
-          setSeekerSaveState(seeker.rowKey, 'Miner Companion update ready to sync');
+      }
+      async function rejectPendingMinerUpdate(original) {
+        const reason = window.prompt(`Why is the update for ${original.seeker?.name || 'this seeker'} being rejected?`);
+        if (reason === null) return;
+        if (!reason.trim()) throw new Error('Add a rejection reason before rejecting this update.');
+        pendingDecisionIds.add(original.id); renderPendingMinerValidations();
+        let auditWarning = '';
+        try {
+          const update = await freshPendingUpdate(original.id);
+          const decision = await apiRequest('/api/miner-updates', { method: 'POST', body: JSON.stringify({ action: 'reject', assignment: selectedImt, ids: [update.id], reason: reason.trim() }) });
+          if (!decision.rejected?.includes(update.id)) throw new Error('This Miner update was already resolved. Harvest was not changed.');
+          try {
+            await appendAuditEntry({ action: 'Miner update rejected', assignment: selectedImt, targets: [update.miner?.name, update.seeker?.name], rows: 0, tabs: [update.seeker?.tab], details: `Update ${update.id} rejected: ${reason.trim()}` });
+          } catch (error) { auditWarning = `Rejection completed, but Sheet audit logging failed: ${error.message}`; }
+          await loadPendingMinerValidations();
+          render();
+          showNotice(auditWarning ? 'error' : 'success', `Rejected the Miner update for ${update.seeker?.name || 'this seeker'}. Harvest was not changed.${auditWarning ? ` ${auditWarning}` : ''}`);
+        } finally {
+          pendingDecisionIds.delete(original.id);
+          renderPendingMinerValidations();
         }
-        miners.forEach(updateMinerSyncUi);
-        return { count: grouped.size, unmatched, total: (result.updates || []).length };
       }
       async function saveMinerUpdates(miner) {
         if (currentMode !== 'miner') return;
@@ -1804,7 +2062,9 @@
         const isReports = currentMode === 'reports';
         const isAdmin = currentUser?.role === 'admin';
         const isSignedIn = Boolean(accessToken && currentUser);
+        const canReviewMinerUpdates = isSignedIn && ((currentMode === 'miner' && ['imt', 'admin'].includes(currentUser?.role)) || (currentMode === 'confirmation' && isAdmin));
         $('toolPanel').hidden = !isSignedIn;
+        $('minerValidationPanel').hidden = !canReviewMinerUpdates;
         $('queueMetrics').hidden = !isSignedIn || isAudit || isUsers || isReports;
         $('queueProgress').hidden = !isSignedIn || isAudit || isUsers || isReports;
         document.querySelectorAll('.mode-btn').forEach((btn) => {
@@ -1825,6 +2085,7 @@
         $('reportsPanel').hidden = !isReports || !accessToken || !isAdmin;
         $('cards').hidden = !isSignedIn || isAudit || isUsers || isReports;
         $('adminOverview').hidden = !(isAdmin && currentMode === 'miner' && accessToken);
+        if (canReviewMinerUpdates) renderPendingMinerValidations();
         const imtSort = $('imtSortSelect')?.value || 'rate';
         $('adminOverviewGrid').innerHTML = Object.values(reportByImt).sort((a, b) => imtSort === 'volume'
           ? b.total - a.total || b.placed - a.placed || a.code.localeCompare(b.code)
@@ -2068,14 +2329,24 @@
           const queue = await fetchQueue();
           miners = queue.miners;
           dirtySeekers = new Set();
-          let companionResult = { count: 0, unmatched: 0, total: 0 };
+          let companionResult = { count: 0, conflicts: 0, invalid: 0, total: 0 };
           let companionError = '';
-          if (currentMode === 'miner' && currentUser?.role !== 'confirmation') {
+          const shouldLoadMinerValidations = (currentMode === 'miner' && currentUser?.role !== 'confirmation') || (currentMode === 'confirmation' && currentUser?.role === 'admin');
+          if (shouldLoadMinerValidations) {
             try {
-              companionResult = await applyPendingMinerUpdates();
+              companionResult = await loadPendingMinerValidations();
             } catch (error) {
               companionError = error.message || 'Unable to check Miner Companion updates.';
+              pendingMinerUpdates = [];
+              pendingMinerConflicts = [];
+              pendingMinerInvalidCount = 0;
+              pendingMinerError = companionError;
             }
+          } else {
+            pendingMinerUpdates = [];
+            pendingMinerConflicts = [];
+            pendingMinerInvalidCount = 0;
+            pendingMinerError = '';
           }
           skipped = queue.skipped;
           auditEntries = queue.auditEntries || [];
@@ -2103,11 +2374,11 @@
             : currentMode === 'confirmation'
               ? `Loaded ${miners.length} PCs from the "${CONFIRMATION_TAB}" tab. Signed in as ${signedInEmail}.`
               : `Loaded ${selectedImt}: ${miners.length} miners from ${selectedRangeLabel()} using ${selectedStatusLabel()}. Signed in as ${signedInEmail}.`;
-          const companionMessage = currentMode !== 'miner' ? '' : companionError
+          const companionMessage = !shouldLoadMinerValidations ? '' : companionError
             ? `Miner Companion updates could not be loaded: ${companionError}`
             : companionResult.total
-              ? `${companionResult.count} seeker status${companionResult.count === 1 ? '' : 'es'} from Miner Companion staged in the queue; ${companionResult.unmatched} update${companionResult.unmatched === 1 ? '' : 's'} could not be matched. Proposed statuses are not in Harvest until you mark the Miner as sent.`
-              : 'No pending Miner Companion updates for this queue.';
+              ? `${companionResult.count} pending Miner update${companionResult.count === 1 ? '' : 's'} await validation.${companionResult.conflicts ? ` ${companionResult.conflicts} seeker conflict${companionResult.conflicts === 1 ? '' : 's'} require manual review; Harvest was not changed.` : ''}`
+              : 'No pending Miner updates for this IMT.';
           showNotice(sessionAuditWarning || companionError ? 'error' : 'success', `${sessionAuditWarning || loadedMessage} ${companionMessage}`);
         } catch (error) {
           if (/Invalid Credentials|Login Required|authentication credentials|session has expired/i.test(error.message)) {
@@ -2142,6 +2413,32 @@
             await apiRequest('/api/admin/users', { method: 'PATCH', body: JSON.stringify({ userId: target.dataset.userId, active: target.dataset.active !== 'true' }) });
             await loadManagedUsers();
           } catch (error) { showNotice('error', error.message); }
+          return;
+        }
+        if (target.dataset.action === 'view-pending-documentation') {
+          try {
+            openPendingDocumentation(pendingUpdateById(target.dataset.updateId));
+          } catch (error) { showNotice('error', error.message); }
+          return;
+        }
+        if (target.dataset.action === 'approve-miner-update') {
+          const update = pendingUpdateById(target.dataset.updateId);
+          if (!update) { showNotice('error', 'This pending Miner update is no longer available. Refresh and try again.'); return; }
+          try {
+            await approvePendingMinerUpdate(update);
+          } catch (error) {
+            showNotice('error', `The update was not approved: ${error.message}`);
+          }
+          return;
+        }
+        if (target.dataset.action === 'reject-pending-miner-update') {
+          const update = pendingUpdateById(target.dataset.updateId);
+          if (!update) { showNotice('error', 'This pending Miner update is no longer available. Refresh and try again.'); return; }
+          try {
+            await rejectPendingMinerUpdate(update);
+          } catch (error) {
+            showNotice('error', `The update was not rejected: ${error.message}`);
+          }
           return;
         }
         if (target.dataset.action === 'view-miner-documentation') {

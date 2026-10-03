@@ -3,8 +3,19 @@ const { pipeline } = require('node:stream/promises');
 const { json, method } = require('./_lib/http');
 const { requireSession } = require('./_lib/supabase');
 
+const MINER_UPDATE_ACTIONS = new Set(['validate', 'acknowledge', 'reject']);
+
 function cleanImt(value) {
   return String(value || '').trim().toUpperCase().replace(/[^A-Z0-9-]/g, '').slice(0, 16);
+}
+
+function cleanAction(value) {
+  const action = String(value || '').trim().toLowerCase();
+  return MINER_UPDATE_ACTIONS.has(action) ? action : '';
+}
+
+function cleanIds(value) {
+  return [...new Set((Array.isArray(value) ? value : []).map((id) => String(id || '').trim()).filter(Boolean))];
 }
 
 function integrationConfig() {
@@ -67,10 +78,21 @@ module.exports = async function handler(req, res) {
       return json(res, 200, result);
     }
 
-    if (String(req.body?.action || '') !== 'acknowledge') return json(res, 400, { error: 'Unsupported Miner update action.' });
-    const result = await integrationJson(`/api/integration?action=acknowledge&${query}`, {
+    const action = cleanAction(req.body?.action);
+    if (!action) return json(res, 400, { error: 'Unsupported Miner update action.' });
+    const ids = cleanIds(req.body?.ids);
+    if (ids.length !== 1) return json(res, 400, { error: 'Select exactly one pending Miner update.' });
+    const reason = String(req.body?.reason || '').trim().slice(0, 500);
+    if (action === 'reject' && !reason) return json(res, 400, { error: 'A rejection reason is required.' });
+    const result = await integrationJson(`/api/integration?action=${action}&${query}`, {
       method: 'POST',
-      body: JSON.stringify({ ids: req.body?.ids, reviewerEmail: profile.email }),
+      body: JSON.stringify({
+        ids,
+        reason,
+        reviewerEmail: profile.email,
+        reviewerUserId: profile.user_id,
+        reviewerRole: profile.role,
+      }),
     });
     json(res, 200, result);
   } catch (error) {
@@ -78,4 +100,4 @@ module.exports = async function handler(req, res) {
   }
 };
 
-module.exports._test = { cleanImt };
+module.exports._test = { cleanImt, cleanAction, cleanIds };
